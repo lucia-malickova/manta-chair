@@ -1,7 +1,23 @@
 # MANTA — the "one ribbon" chair (Open Chair)
 
+![MANTA poster](TEAMID_Poster.jpg)
+
 The whole chair is **one continuous ribbon**, **sliced crosswise** (like a
 baguette) so every part fits a home printer and every joint stays strong.
+Named for the manta ray — the forked feet read as fins, the tail-brace as a
+fluke — and for the ocean's role as the planet's largest source of oxygen,
+which the surface relief carries in its own graded texture, bold at the
+floor and calming toward the crown.
+
+No two of its 42 printed segments are identical, on purpose: nothing in
+nature repeats, so nothing here does either. Change a few tables in
+`manta_ribbon.py` and the same script regenerates a lighter, cheaper, or
+differently-sized chair with the same joints — this repo *is* that script.
+
+📄 [Full description (PDF)](TEAMID_Description.pdf) · 🖼 [Board](TEAMID_Board.jpg) · 🖼 [Poster](TEAMID_Poster.jpg)
+
+Shared under **CC BY-NC-SA** — free to study, adapt, and reprint; not for
+commercial resale.
 
 ---
 
@@ -79,5 +95,3 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - the remaining `manta_*.py` files = rendering / submission packaging
 - `MANTA_Description_DRAFT.md` — the description text (edit, then run `manta_pdf.py`)
 - `_board_base.png` — the rasterised official board template (without instructions)
-
-Older versions (CHRBTICA, LEKNO, VETVA) are in `stare/` — no longer used.
