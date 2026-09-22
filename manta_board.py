@@ -207,8 +207,8 @@ wrap((box_x0 + 24, box_y0 + 70), "Nothing in nature repeats itself, so no two pa
      "joints. One parametric script: change the width, thickness or infill tables and it regenerates "
      "a leaner, cheaper variant with the same joints, so no one has to own the same chair.",
      F(25), INK, maxw=1512, sp=6)
-dr.text((box_x0 + 24, 4840), "Built from one parametric script — every table is", font=F(22), fill=SUB)
-dr.text((box_x0 + 24, 4868), "editable, source released under CC BY-NC-SA.", font=F(24, True), fill=TEAL_DK)
+dr.text((box_x0 + 24, 4840), "Full source, anonymised for review:", font=F(22), fill=SUB)
+dr.text((box_x0 + 24, 4868), "anonymous.4open.science/r/manta-chair-23D4", font=F(24, True), fill=TEAL_DK)
 
 board.convert("RGB").save(OUTF, "JPEG", quality=86)
 print(f"{OUTF}  {board.size}  {os.path.getsize(OUTF)/1e6:.2f} MB")

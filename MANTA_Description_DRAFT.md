@@ -61,4 +61,4 @@ segments are geometrically unique (only the small locking pin repeats). The
 mass is a choice, not a default — thin shells don't glue into strong joints.
 One parametric script: change the tables and it regenerates a leaner
 variant with the same joints, so no one has to own the same chair. Full
-source released under CC BY-NC-SA.
+source, anonymised for review: anonymous.4open.science/r/manta-chair-23D4

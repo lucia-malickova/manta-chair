@@ -164,7 +164,7 @@ def draw_footer(c, doc):
     c.drawString(20 * mm, 9.5 * mm, "MANTA — Open Chair 2026, chair description")
     c.setFont("Helvetica-Bold", 7.6)
     c.setFillColor(TEAL_DK)
-    c.drawRightString(pw - 20 * mm, 9.5 * mm, "Full source released under CC BY-NC-SA")
+    c.drawRightString(pw - 20 * mm, 9.5 * mm, "Anonymised source: anonymous.4open.science/r/manta-chair-23D4")
     c.restoreState()
 
 def on_first_page(c, doc):
