@@ -25,5 +25,6 @@ for dst, s in src.items():
     mb = os.path.getsize(s) / 1e6
     total += mb
     print(f"{dst:30s}{mb:8.2f}")
-print(f"{'TOTAL':30s}{total:8.2f}   (limit 10.00)  ->  {'OK' if total <= 10 else 'OVER LIMIT!'}")
+LIMIT = 15.0  # confirmed on the live submission page — the brief PDF's 10MB is stale
+print(f"{'TOTAL':30s}{total:8.2f}   (limit {LIMIT:.2f})  ->  {'OK' if total <= LIMIT else 'OVER LIMIT!'}")
 print(f"\n{OUT}/  — after registration, rename TEAMID_ to the team's ID.")

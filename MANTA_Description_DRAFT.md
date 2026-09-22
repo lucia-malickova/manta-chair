@@ -32,7 +32,7 @@ load-bearing:
 
 ## Printing
 
-~42 segments, each within 212 × 220 × 250 mm, printable **without supports**
+41 segments, each within 212 × 220 × 250 mm, printable **without supports**
 (8 print upright) — every gram becomes chair, none is scrapped as support
 waste for an ocean that has enough plastic in it already. PETG, 0.2 mm
 layers, 5 perimeters, 35 % gyroid — kept low, thickness already carries the
@@ -56,9 +56,9 @@ high, 3° rearward tilt, convex lumbar.
 
 ## Open design — nothing repeats
 
-Nothing in nature repeats, so no two parts of this chair do either: all 42
+Nothing in nature repeats, so no two parts of this chair do either: all 41
 segments are geometrically unique (only the small locking pin repeats). The
 mass is a choice, not a default — thin shells don't glue into strong joints.
 One parametric script: change the tables and it regenerates a leaner
 variant with the same joints, so no one has to own the same chair. Full
-source, CC BY-NC-SA: github.com/lucia-malickova/manta-chair
+source released under CC BY-NC-SA.

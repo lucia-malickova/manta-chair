@@ -9,7 +9,7 @@ fluke — and for the ocean's role as the planet's largest source of oxygen,
 which the surface relief carries in its own graded texture, bold at the
 floor and calming toward the crown.
 
-No two of its 42 printed segments are identical, on purpose: nothing in
+No two of its 41 printed segments are identical, on purpose: nothing in
 nature repeats, so nothing here does either. Change a few tables in
 `manta_ribbon.py` and the same script regenerates a lighter, cheaper, or
 differently-sized chair with the same joints — this repo *is* that script.
@@ -37,15 +37,23 @@ renders / board / poster / PDF.
 | # | command | what it does | output |
 |---|---|---|---|
 | 1 | `python manta_ribbon.py` | **generator** — builds the ribbon, **slices it**, adds tenons + pins, exports the parts and the assembled chair | `MANTA_RIBBON/` |
-| 2 | `python manta_strength_check.py` | **strength + stability check** (first-order, pure math) | printed to the console |
-| 3 | `python manta_joint_test.py` | **physical joint test** — small pieces to print and glue | `MANTA_TEST/` |
+| 2 | `python manta_apply_template.py` | embeds the chair + numbered parts into the **official, unmodified** `3D_Template.stl` (chair centred in its 800x800mm footprint box, each part in its numbered 220x220x250mm cell) | overwrites `MANTA_RIBBON/MANTA_Chair.stl` + `MANTA_Assembly.stl` |
+| 3 | `python manta_strength_check.py` | **strength + stability check** (first-order, pure math) | printed to the console |
+| 4 | `python manta_joint_test.py` | **physical joint test** — small pieces to print and glue | `MANTA_TEST/` |
 | — | *renders and submission files:* | | |
-| 4 | `python manta_render.py` | renders (poster + board views) | `_deliver/` |
-| 5 | `python manta_explode.py` | exploded view + parts grid | `_deliver/` |
-| 6 | `python manta_pdf.py` | description -> PDF | `TEAMID_Description.pdf` |
-| 7 | `python manta_poster.py` | A2 poster | `TEAMID_Poster.jpg` |
-| 8 | `python manta_board.py` | A2 board (on the official template) | `TEAMID_Board.jpg` |
-| 9 | `python manta_package.py` | packs the submission files + checks total size | `ODOVZDANIE/` |
+| 5 | `python manta_render.py` | renders (poster + board views) | `_deliver/` |
+| 6 | `python manta_explode.py` | exploded view + parts grid | `_deliver/` |
+| 7 | `python manta_pdf.py` | description -> PDF | `TEAMID_Description.pdf` |
+| 8 | `python manta_poster.py` | A2 poster | `TEAMID_Poster.jpg` |
+| 9 | `python manta_board.py` | A2 board (on the official template) | `TEAMID_Board.jpg` |
+| 10 | `python manta_package.py` | packs the submission files + checks total size | `ODOVZDANIE/` |
+
+**Part numbering**: the official `3D_Template.stl` numbers its 49 cells
+column-major (1,8,15,22,29,36,43 down column 1; 2,9,16,... down column 2;
+etc) — that's fixed, unmodifiable template geometry. The Board's own key
+graphic lays its numbers out row-major instead. Both are correct: only the
+*number* has to match between the two (part "5" on the Board = part "5" in
+the STL's cell "5"), not the box's on-page position.
 
 **Slicing is NOT a separate file** — it lives inside `manta_ribbon.py`, in the
 `build()` function: it makes crosswise cuts (by length + curvature, avoiding
@@ -89,9 +97,12 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 ## Code files
 
 - `manta_ribbon.py` — generator + slicing + joints + export
+- `manta_apply_template.py` — embeds the chair/parts into the official `3D_Template.stl`
 - `manta_strength_check.py` — strength + stability
+- `manta_ergonomics_check.py` — seat/backrest dimensions vs standard reference ranges
 - `manta_joint_test.py` — physical joint test
 - `manta_material.py` — filament use + cost from the real STL parts
 - the remaining `manta_*.py` files = rendering / submission packaging
 - `MANTA_Description_DRAFT.md` — the description text (edit, then run `manta_pdf.py`)
 - `_board_base.png` — the rasterised official board template (without instructions)
+- `3D_Template.stl` — the official 3D print file template (unmodified, as provided)
