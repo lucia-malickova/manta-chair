@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """MANTA — exploded view + parts-arrangement render (for the board)."""
 import os, glob, math, numpy as np, vtk
+from PIL import Image, ImageDraw, ImageFont
 
 OUT = "_deliver"; SRC = "MANTA_RIBBON"
 
@@ -17,7 +18,12 @@ def actor(pd, col=(0.60, 0.64, 0.74)):
     p.SetColor(*col); p.SetEdgeVisibility(1); p.SetEdgeColor(0.3, 0.32, 0.38); p.SetLineWidth(0.6)
     return a
 
-def scene(actors, fname, size, elev, azim, parallel=True):
+def scene(actors, fname, size, elev, azim, parallel=True, labels=()):
+    # labels are drawn as a flat 2D pass AFTER rendering (not as 3D billboard
+    # actors) — a billboard actor still depth-tests against the meshes, so in
+    # a tightly packed exploded cluster a neighbouring part can fully hide a
+    # label behind it. Projecting to 2D and drawing on top guarantees every
+    # number stays visible regardless of what else is nearby in 3D.
     ren = vtk.vtkRenderer(); ren.GradientBackgroundOn()
     ren.SetBackground(1, 1, 1); ren.SetBackground2(0.95, 0.96, 0.98)
     ren.SetUseDepthPeeling(1); ren.SetMaximumNumberOfPeels(10)
@@ -43,6 +49,33 @@ def scene(actors, fname, size, elev, azim, parallel=True):
     w2i.ReadFrontBufferOff(); w2i.Update()
     wr = vtk.vtkPNGWriter(); wr.SetFileName(f"{OUT}/{fname}")
     wr.SetInputConnection(w2i.GetOutputPort()); wr.Write()
+
+    if labels:
+        img = Image.open(f"{OUT}/{fname}").convert("RGB")
+        dr = ImageDraw.Draw(img)
+        try: font = ImageFont.truetype(r"C:\Windows\Fonts\arialbd.ttf", 30)
+        except Exception: font = ImageFont.load_default()
+        w, h = size
+        pts = []
+        for pos, text in labels:
+            ren.SetWorldPoint(pos[0], pos[1], pos[2], 1.0)
+            ren.WorldToDisplay()
+            dx, dy, dz = ren.GetDisplayPoint()
+            pts.append((dx, h - dy, text))
+        # nudge apart labels that land within a few px of each other in 2D
+        # (two segments exploded to almost the same screen position)
+        for i in range(len(pts)):
+            xi, yi, ti = pts[i]
+            for j in range(i):
+                xj, yj, tj = pts[j]
+                if abs(xi - xj) < 26 and abs(yi - yj) < 26:
+                    xi += 30; yi -= 6
+            pts[i] = (xi, yi, ti)
+        for px, py, text in pts:
+            r = 17
+            dr.ellipse((px - r, py - r, px + r, py + r), fill=(255, 255, 255), outline=(90, 92, 96), width=2)
+            dr.text((px, py), text, font=font, fill=(20, 20, 20), anchor="mm")
+        img.save(f"{OUT}/{fname}")
     print(fname, size)
 
 # ---- exploded: each segment offset outward from the chair's centre ----
@@ -51,8 +84,8 @@ pds = [read(p) for p in segs]
 allb = np.array([pd.GetBounds() for pd in pds])
 C = np.array([allb[:, 0].min()+allb[:, 1].max(), allb[:, 2].min()+allb[:, 3].max(),
               allb[:, 4].min()+allb[:, 5].max()]) / 2
-acts = []
-for pd, bnd in zip(pds, allb):
+acts, num_labels = [], []
+for i, (pd, bnd) in enumerate(zip(pds, allb), start=1):
     c = np.array([(bnd[0]+bnd[1])/2, (bnd[2]+bnd[3])/2, (bnd[4]+bnd[5])/2])
     d = c - C
     d[1] *= 2.6                       # spread mainly sideways (L/R)
@@ -60,7 +93,11 @@ for pd, bnd in zip(pds, allb):
     tf = vtk.vtkTransform(); tf.Translate(*off)
     tp = vtk.vtkTransformPolyDataFilter(); tp.SetInputData(pd); tp.SetTransform(tf); tp.Update()
     acts.append(actor(tp.GetOutput()))
-scene(acts, "b_exploded.png", (2600, 2200), 16, -62, parallel=True)
+    # number every part, matching the Board key / template cell numbering
+    out_bnd = tp.GetOutput().GetBounds()
+    lp = ((out_bnd[0]+out_bnd[1])/2, (out_bnd[2]+out_bnd[3])/2, out_bnd[5] + 30)
+    num_labels.append((lp, str(i)))
+scene(acts, "b_exploded.png", (2600, 2200), 16, -62, parallel=True, labels=num_labels)
 
 # ---- parts arrangement (Assembly.stl from above) ----
 asm = read(f"{SRC}/MANTA_Assembly.stl")
