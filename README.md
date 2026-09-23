@@ -71,10 +71,13 @@ text, not a printable object) — a slicer will still try to load it alongside
 your parts, which is confusing and pointless for an actual print.
 
 For printing at home, use [`MANTA_RIBBON/`](MANTA_RIBBON) instead: the same
-42 parts (`SEG_*.stl` + `PIN.stl`), each its own clean file with no template
-geometry, exactly as `manta_ribbon.py` exports them. `PARTS_LIST.txt` in
-that folder gives the part numbers (matching the Board's key) and print
-notes (e.g. which segments print standing, no supports needed).
+42 parts, no template geometry mixed in. Each file is named
+`NN_SEG_xxx.stl`, where `NN` is the part number from the Board's key and the
+exploded-view diagram (`01_SEG_00L.stl` = part 1, `42_PIN.stl` = part 42,
+and so on) — so the file list itself tells you what to print against the
+Board, no cross-referencing needed. `PARTS_LIST.txt` in that folder has the
+same numbering plus print notes (e.g. which segments print standing, no
+supports needed).
 
 ---
 

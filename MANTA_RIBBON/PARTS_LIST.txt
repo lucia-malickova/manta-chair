@@ -1,46 +1,46 @@
 BOARD LEGEND  (42 items, limit 49)
- 1. SEG_00L      1x  
- 2. SEG_00R      1x  
- 3. SEG_01L      1x  
- 4. SEG_01R      1x  
- 5. SEG_02L      1x  
- 6. SEG_02R      1x  
- 7. SEG_03L      1x  [print STANDING, no supports]
- 8. SEG_03R      1x  [print STANDING, no supports]
- 9. SEG_04L      1x  
-10. SEG_04R      1x  
-11. SEG_05L      1x  
-12. SEG_05R      1x  
-13. SEG_06L      1x  [print STANDING, no supports]
-14. SEG_06R      1x  [print STANDING, no supports]
-15. SEG_07L      1x  
-16. SEG_07R      1x  
-17. SEG_08L      1x  
-18. SEG_08R      1x  
-19. SEG_09L      1x  
-20. SEG_09R      1x  
-21. SEG_10L      1x  [print STANDING, no supports]
-22. SEG_10R      1x  [print STANDING, no supports]
-23. SEG_11L      1x  [print STANDING, no supports]
-24. SEG_11R      1x  [print STANDING, no supports]
-25. SEG_12L      1x  
-26. SEG_12R      1x  
-27. SEG_13L      1x  
-28. SEG_13R      1x  
-29. SEG_14       1x  
-30. SEG_15       1x  
-31. SEG_16       1x  
-32. SEG_17       1x  
-33. SEG_18       1x  
-34. SEG_19L      1x  
-35. SEG_19R      1x  
-36. SEG_20L      1x  
-37. SEG_20R      1x  
-38. SEG_21L      1x  
-39. SEG_21R      1x  
-40. SEG_22L      1x  
-41. SEG_22R      1x  
-42. PIN          4x  
+ 1. 01_SEG_00L      1x  
+ 2. 02_SEG_00R      1x  
+ 3. 03_SEG_01L      1x  
+ 4. 04_SEG_01R      1x  
+ 5. 05_SEG_02L      1x  
+ 6. 06_SEG_02R      1x  
+ 7. 07_SEG_03L      1x  [print STANDING, no supports]
+ 8. 08_SEG_03R      1x  [print STANDING, no supports]
+ 9. 09_SEG_04L      1x  
+10. 10_SEG_04R      1x  
+11. 11_SEG_05L      1x  
+12. 12_SEG_05R      1x  
+13. 13_SEG_06L      1x  [print STANDING, no supports]
+14. 14_SEG_06R      1x  [print STANDING, no supports]
+15. 15_SEG_07L      1x  
+16. 16_SEG_07R      1x  
+17. 17_SEG_08L      1x  
+18. 18_SEG_08R      1x  
+19. 19_SEG_09L      1x  
+20. 20_SEG_09R      1x  
+21. 21_SEG_10L      1x  [print STANDING, no supports]
+22. 22_SEG_10R      1x  [print STANDING, no supports]
+23. 23_SEG_11L      1x  [print STANDING, no supports]
+24. 24_SEG_11R      1x  [print STANDING, no supports]
+25. 25_SEG_12L      1x  
+26. 26_SEG_12R      1x  
+27. 27_SEG_13L      1x  
+28. 28_SEG_13R      1x  
+29. 29_SEG_14       1x  
+30. 30_SEG_15       1x  
+31. 31_SEG_16       1x  
+32. 32_SEG_17       1x  
+33. 33_SEG_18       1x  
+34. 34_SEG_19L      1x  
+35. 35_SEG_19R      1x  
+36. 36_SEG_20L      1x  
+37. 37_SEG_20R      1x  
+38. 38_SEG_21L      1x  
+39. 39_SEG_21R      1x  
+40. 40_SEG_22L      1x  
+41. 41_SEG_22R      1x  
+42. 42_PIN          4x  
 
 crosswise joint (baguette-cut): conical tenon dia 32 + two-part epoxy
 lengthwise joint (L/R seam): transverse tenon dia 24 + epoxy
