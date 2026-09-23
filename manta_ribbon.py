@@ -192,7 +192,7 @@ ERGO_LUMB_H = 170.0   # mm, the lumbar support should sit THIS HIGH above the se
 
 # ── corners (knee, lumbar) = the points of sharpest axis turning ──
 def recompute_corners():
-    global _KNEE, _LUMB, CORNERS, _SEATMID, _ERGO_LUMB
+    global _KNEE, _LUMB, CORNERS, _SEATMID, _ERGO_LUMB, _CROWN
     d = np.linspace(0, 1, 900)
     ang = np.unwrap([math.atan2(tangent(s)[2], tangent(s)[0]) for s in d])
     rate = np.abs(np.gradient(ang, d))
@@ -213,9 +213,46 @@ def recompute_corners():
     dd = np.linspace(_LUMB, min(_LUMB + 0.22, 0.85), 400)
     zz = np.array([center(s)[2] for s in dd])
     _ERGO_LUMB = float(dd[int(np.argmin(np.abs(zz - (seat_z + ERGO_LUMB_H))))])
+    # crown = the highest point of the spine (the fiddlehead curl's tip)
+    dz = np.linspace(0.3, 0.85, 900)
+    zc = np.array([center(s)[2] for s in dz])
+    _CROWN = float(dz[int(np.argmax(zc))])
 
 
 recompute_corners()
+
+# ── six assembly zones (matches "Lay out by zone" on the Board): computed
+# from the same landmarks used everywhere else (knee/lumbar/crown/fork),
+# not eyeballed, so relabelling stays correct if the spine is ever retuned.
+ZONE_NAMES = ["fore-foot fork", "front leg", "seat", "lumbar", "backrest", "tail-foot fork"]
+# ocean palette, but with real hue/lightness steps between zones so they
+# actually read apart at a glance — a narrow teal-on-teal ramp looked like
+# one colour. Lumbar stays a clear amber accent (the one true structural knot).
+ZONE_COLORS = [
+    (0.03, 0.09, 0.20),   # fore-foot fork — near-black navy
+    (0.05, 0.42, 0.68),   # front leg — clear blue
+    (0.02, 0.62, 0.55),   # seat — teal
+    (0.88, 0.58, 0.08),   # lumbar — amber, the one true knot
+    (0.15, 0.50, 0.14),   # backrest — forest green
+    (0.72, 0.86, 0.30),   # tail-foot fork — lime, tip of the curl
+]
+
+
+def zone_of(s):
+    """0..5 assembly zone for a spine fraction s, per ZONE_NAMES."""
+    fork_lo = FORK_ARC / _LEN
+    if s < fork_lo:
+        return 0                       # fore-foot fork
+    if s < _KNEE:
+        return 1                       # front leg
+    lumb_lo, lumb_hi = _LUMB - FORBID / _LEN, _LUMB + FORBID / _LEN
+    if s < lumb_lo:
+        return 2                       # seat
+    if s < lumb_hi:
+        return 3                       # lumbar (the knot itself stays whole)
+    if s < _CROWN + 0.05:
+        return 4                       # backrest (through the curl)
+    return 5                           # tail-foot fork (return + brace + rear fork)
 
 
 def fork_amt(s):

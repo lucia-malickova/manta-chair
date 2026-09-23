@@ -1,9 +1,21 @@
 # -*- coding: utf-8 -*-
 """MANTA — exploded view + parts-arrangement render (for the board)."""
-import os, glob, math, numpy as np, vtk
+import os, re, glob, math, numpy as np, vtk
 from PIL import Image, ImageDraw, ImageFont
+import manta_ribbon as st
 
 OUT = "_deliver"; SRC = "MANTA_RIBBON"
+_CUTS = st.cut_stations()
+
+
+def zone_for_file(path):
+    """(colour 0-1 tuple, zone index) for a SEG_NNx.stl, from its real cut
+    position — same zones as the Board's 'Lay out by zone' step and the key
+    grid, so the colour means the same thing everywhere it appears."""
+    k = int(re.match(r"SEG_(\d+)", os.path.basename(path)).group(1))
+    smid = 0.5 * (_CUTS[k] + _CUTS[k + 1])
+    z = st.zone_of(smid)
+    return st.ZONE_COLORS[z], z
 
 def read(path):
     r = vtk.vtkSTLReader(); r.SetFileName(path); r.Update()
@@ -18,7 +30,7 @@ def actor(pd, col=(0.60, 0.64, 0.74)):
     p.SetColor(*col); p.SetEdgeVisibility(1); p.SetEdgeColor(0.3, 0.32, 0.38); p.SetLineWidth(0.6)
     return a
 
-def scene(actors, fname, size, elev, azim, parallel=True, labels=()):
+def scene(actors, fname, size, elev, azim, parallel=True, labels=(), legend=None):
     # labels are drawn as a flat 2D pass AFTER rendering (not as 3D billboard
     # actors) — a billboard actor still depth-tests against the meshes, so in
     # a tightly packed exploded cluster a neighbouring part can fully hide a
@@ -76,6 +88,21 @@ def scene(actors, fname, size, elev, azim, parallel=True, labels=()):
             dr.ellipse((px - r, py - r, px + r, py + r), fill=(255, 255, 255), outline=(90, 92, 96), width=2)
             dr.text((px, py), text, font=font, fill=(20, 20, 20), anchor="mm")
         img.save(f"{OUT}/{fname}")
+
+    if legend:
+        img = Image.open(f"{OUT}/{fname}").convert("RGB")
+        dr = ImageDraw.Draw(img)
+        try:
+            lfont = ImageFont.truetype(r"C:\Windows\Fonts\arial.ttf", 26)
+        except Exception:
+            lfont = ImageFont.load_default()
+        lx, ly = 24, size[1] - 24 - 26 * len(legend)
+        for name, col in legend:
+            rgb = tuple(int(round(c * 255)) for c in col)
+            dr.rectangle((lx, ly, lx + 22, ly + 22), fill=rgb, outline=(90, 92, 96))
+            dr.text((lx + 32, ly + 1), name, font=lfont, fill=(40, 40, 40))
+            ly += 26
+        img.save(f"{OUT}/{fname}")
     print(fname, size)
 
 # ---- exploded: each segment offset outward from the chair's centre ----
@@ -85,19 +112,23 @@ allb = np.array([pd.GetBounds() for pd in pds])
 C = np.array([allb[:, 0].min()+allb[:, 1].max(), allb[:, 2].min()+allb[:, 3].max(),
               allb[:, 4].min()+allb[:, 5].max()]) / 2
 acts, num_labels = [], []
-for i, (pd, bnd) in enumerate(zip(pds, allb), start=1):
+used_zones = set()
+for i, (pd, bnd, path) in enumerate(zip(pds, allb, segs), start=1):
     c = np.array([(bnd[0]+bnd[1])/2, (bnd[2]+bnd[3])/2, (bnd[4]+bnd[5])/2])
     d = c - C
     d[1] *= 2.6                       # spread mainly sideways (L/R)
     off = d * 0.9 + np.array([0, 0, 0])
     tf = vtk.vtkTransform(); tf.Translate(*off)
     tp = vtk.vtkTransformPolyDataFilter(); tp.SetInputData(pd); tp.SetTransform(tf); tp.Update()
-    acts.append(actor(tp.GetOutput()))
+    col, zi = zone_for_file(path)
+    used_zones.add(zi)
+    acts.append(actor(tp.GetOutput(), col=col))
     # number every part, matching the Board key / template cell numbering
     out_bnd = tp.GetOutput().GetBounds()
     lp = ((out_bnd[0]+out_bnd[1])/2, (out_bnd[2]+out_bnd[3])/2, out_bnd[5] + 30)
     num_labels.append((lp, str(i)))
-scene(acts, "b_exploded.png", (2600, 2200), 16, -62, parallel=True, labels=num_labels)
+legend = [(st.ZONE_NAMES[z], st.ZONE_COLORS[z]) for z in sorted(used_zones)]
+scene(acts, "b_exploded.png", (2600, 2200), 16, -62, parallel=True, labels=num_labels, legend=legend)
 
 # ---- parts arrangement (Assembly.stl from above) ----
 asm = read(f"{SRC}/MANTA_Assembly.stl")

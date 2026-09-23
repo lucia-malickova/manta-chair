@@ -2,14 +2,36 @@
 """MANTA — A2 BOARD landscape (7016x4962). Composited onto the official
 template (_board_base.png = 'Board Template Without Instructions', already
 carries the 49-slot grid)."""
-import os, math
+import os, re, math
 from PIL import Image, ImageDraw, ImageFont
+import manta_ribbon as st
 
 W, H = 7016, 4962
 D = "_deliver"
 OUTF = "TEAMID_Board.jpg"
 INK, SUB, HAIR = (26, 28, 32), (108, 112, 120), (200, 203, 208)
 TEAL, TEAL_DK, TEAL_TINT = (10, 128, 138), (8, 74, 82), (223, 241, 241)
+
+# part number (1-42, board key order) -> assembly-zone colour, same zones
+# and colours as the exploded view, so the key grid and the diagram agree
+_CUTS = st.cut_stations()
+def _part_names():
+    names = []
+    with open(f"{D.replace('_deliver','MANTA_RIBBON')}/PARTS_LIST.txt", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or not line[0].isdigit() or "." not in line.split()[0]:
+                continue
+            names.append(line.split(".", 1)[1].split()[0])
+    return names
+ZONE_RGB = [tuple(int(round(c * 255)) for c in col) for col in st.ZONE_COLORS]
+_PART_ZONE = {}
+for _i, _nm in enumerate(_part_names(), start=1):
+    if _nm == "PIN":
+        continue
+    _k = int(re.match(r"SEG_(\d+)", _nm).group(1))
+    _smid = 0.5 * (_CUTS[_k] + _CUTS[_k + 1])
+    _PART_ZONE[_i] = st.zone_of(_smid)
 
 def F(sz, b=False):
     p = r"C:\Windows\Fonts\arialbd.ttf" if b else r"C:\Windows\Fonts\arial.ttf"
@@ -61,8 +83,13 @@ for n in range(1, 43):
     board.paste(th, (int(cx - th.width / 2), int(cy - th.height / 2)))
     badge_r = 15
     bx, by = x0 + 4, y0 + 4
-    dr.ellipse((bx, by, bx + badge_r * 2, by + badge_r * 2), fill=(255, 255, 255), outline=(150, 152, 156))
-    dr.text((bx + badge_r, by + badge_r), str(n), font=F(15, True), fill=INK, anchor="mm")
+    zi = _PART_ZONE.get(n)
+    fill = ZONE_RGB[zi] if zi is not None else (255, 255, 255)
+    lum = 0.299 * fill[0] + 0.587 * fill[1] + 0.114 * fill[2]
+    txt = (255, 255, 255) if lum < 150 else INK
+    outline = (150, 152, 156) if zi is None else fill
+    dr.ellipse((bx, by, bx + badge_r * 2, by + badge_r * 2), fill=fill, outline=outline)
+    dr.text((bx + badge_r, by + badge_r), str(n), font=F(15, True), fill=txt, anchor="mm")
 
 def img(name, box, contain=True):
     x0, y0, x1, y1 = box
