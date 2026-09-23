@@ -135,13 +135,20 @@ error instead of quietly writing an unsafe STL. Run
 
 **A ready-made lighter variant — [`MANTA_LIGHT/`](MANTA_LIGHT).** Not
 everyone needs a chair rated for a 120 kg dynamic sitter. `manta_ribbon_personal.py`
-is the exact same generator with `TH_S` thinned to 75%; `manta_strength_check_personal.py`
-re-verifies it at a 90 kg design target (still a healthy margin over a single
-60 kg user, plus guests) — safe static load **~123 kg**, weakest joint
-**1.4x**. `MANTA_LIGHT/` is the already-generated, numbered result: same 42
-parts, same joints, ~40% less filament (**9.6 kg vs 16.2 kg**, run
-`manta_material_personal.py` for the cost at your own filament price). This
-is a demonstration variant, not the competition entry — the competition
+is the exact same generator with `TH_S` thinned to 75% and infill dropped
+to 20%; `manta_strength_check_personal.py` re-verifies it at a 90 kg design
+target (still a healthy margin over a single 60 kg user, plus guests) — on
+the primary (epoxied) load path, weakest joint **3.2x**. One check is an
+exception: the PETG-only backup (tenon+pin, no epoxy — what would carry
+the joint if the glue itself failed) comes out to **0.9x** at 20% infill,
+just under the design's own 1.0x bar; it doesn't gate generation (that's a
+deliberate, explicit trade-off, not a rounding gap), but it does mean this
+variant leans on the epoxy actually being applied — no skipping the glue
+step on `MANTA_LIGHT/` parts. `MANTA_LIGHT/` is the already-generated,
+numbered result: same 42 parts, same joints, ~40% less filament
+(**9.6 kg vs 16.2 kg**, run `manta_material_personal.py` for the cost at
+your own filament price). This is a demonstration variant, not the
+competition entry — the competition
 files are untouched.
 
 Want to print it in more than one colour? `python manta_colour_guide.py`

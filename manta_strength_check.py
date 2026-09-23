@@ -90,7 +90,13 @@ CHAIR_COM_X  = 120.0
 # a table edit actually changes, and those are now always current.
 # ═══════════════════════════════════════════════════════
 
-k  = max(0.30, INFILL)
+# k scales allowable PETG-core stress by infill fraction. A floor of 0.30
+# here would silently treat any lower INFILL as if it were 30% -- harmless
+# at this file's 35% (always above the floor), but wrong in principle;
+# kept only as a numerical guard against INFILL=0, not a stand-in for a
+# real infill value (see manta_strength_check_personal.py, where a lower
+# infill actually exposed this).
+k  = max(0.02, INFILL)
 sa = SIG_ULT   * k / SF
 la = SIG_LAYER * k / SF
 ta = TAU_ULT   * k / SF

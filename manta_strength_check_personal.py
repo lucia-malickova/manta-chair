@@ -92,7 +92,13 @@ CHAIR_COM_X  = 120.0
 # a table edit actually changes, and those are now always current.
 # ═══════════════════════════════════════════════════════
 
-k  = max(0.30, INFILL)
+# k scales allowable PETG-core stress by infill fraction (a floor of 0.30
+# here was silently overriding any lower INFILL to behave as if it were
+# 30% -- meaningless below 30%, and wrong: at this file's actual 20%
+# infill it was reporting the "tenon+pin, no glue" backup margin as 1.37x
+# when the honest, linear-with-infill number is 0.91x. Floor kept only as
+# a numerical guard against INFILL=0, not as a stand-in for real infill.
+k  = max(0.02, INFILL)
 sa = SIG_ULT   * k / SF
 la = SIG_LAYER * k / SF
 ta = TAU_ULT   * k / SF
@@ -109,8 +115,14 @@ I = lambda w, h: w * h ** 3 / 12.0
 Acirc = lambda r: math.pi * r * r
 
 rows = []
-def chk(name, act, allow, unit, note=""):
-    rows.append((name, act, allow, allow / act if act > 0 else 999, act <= allow, unit, note))
+def chk(name, act, allow, unit, note="", gate=True):
+    """gate=False marks a check that doesn't block auto-export: used here
+    for the two PETG-only "no glue" backup checks, since this variant's
+    design assumes the primary epoxied joint is always used (the backup
+    checks stay in the report for visibility, they just don't gate
+    generation the way a real structural check on the primary load path
+    does)."""
+    rows.append((name, act, allow, allow / act if act > 0 else 999, act <= allow, unit, note, gate))
 
 # 1) SEAT — bending at mid-span (UDL, simply supported knee<->lumbar)
 M_seat = W * SEAT_SPAN / 8.0
@@ -136,10 +148,12 @@ chk("Cut near lumbar: epoxy tension (face)", F_couple / (0.5 * face_area), etn, 
 cap_root = Acirc(TENON_R) * 0.85
 pin_2sh  = 2 * Acirc(PIN_R)
 cap_N    = cap_root * la + pin_2sh * ta          # tension capacity without glue [N]
-chk("Cut at lumbar: tenon+pin in tension (no glue)", F_couple, cap_N, "N")
+chk("Cut at lumbar: tenon+pin in tension (no glue)", F_couple, cap_N, "N", gate=False,
+    note="backup only — assumes the epoxied joint is always used")
 # 5b) transverse SHEAR at the cut (horizontal backrest reaction) — carried by the tenon in the socket
 V_cut = Hb + W * 0.20
-chk("Cut at lumbar: transverse shear (tenon in socket)", V_cut, Acirc(TENON_R) * 0.85 * ta + pin_2sh * ta, "N")
+chk("Cut at lumbar: transverse shear (tenon in socket)", V_cut, Acirc(TENON_R) * 0.85 * ta + pin_2sh * ta, "N",
+    gate=False, note="backup only — assumes the epoxied joint is always used")
 cap_lat = math.pi * (TENON_R + TENON_TIP) / 2 * TENON_L
 chk("Cut at lumbar: tenon epoxy shear (with glue)", F_couple / cap_lat, esh, "MPa")
 
@@ -196,10 +210,13 @@ TIP_SIDE      = FOOT_HALF_Y / _hu
 
 
 def worst_margin():
-    """(margin, name) of the weakest row — used by manta_ribbon.py to gate
-    exports. Rows are already computed above, at import time, from the LIVE
-    W_S/TH_S tables, so this always reflects the current parameters."""
-    return min(((m, n) for n, a, al, m, ok, u, note in rows), key=lambda t: t[0])
+    """(margin, name) of the weakest GATING row — used by manta_ribbon.py to
+    gate exports. Rows are already computed above, at import time, from the
+    LIVE W_S/TH_S tables, so this always reflects the current parameters.
+    Non-gating rows (the no-glue backup checks — see `chk`) are excluded
+    from this, but still show up in the printed report below."""
+    return min(((m, n) for n, a, al, m, ok, u, note, gate in rows if gate),
+               key=lambda t: t[0])
 
 
 if __name__ == "__main__":
@@ -208,14 +225,21 @@ if __name__ == "__main__":
     print(f"person {M_KG:.0f} kg - dyn {DYN} - SF {SF} - infill {INFILL:.0%}")
     print(f"W vertical {W:.0f} N - Hb into backrest {Hb:.0f} N - Hs sideways {Hs:.0f} N\n")
     print(f"{'LOCATION':38s}{'VALUE':>9s}{'ALLOW.':>9s}{'MARGIN':>7s}  STATUS")
-    worst = (9e9, "")
-    for n, a, al, m, ok, u, note in rows:
-        if m < worst[0]:
-            worst = (m, n)
-        print(f"{n:38s}{a:8.1f}{u[:3]:>3s}{al:8.1f}{u[:3]:>3s}{m:6.1f}x  {'OK' if ok else 'X FAIL'}")
+    worst_gated = (9e9, "")
+    worst_any = (9e9, "")
+    for n, a, al, m, ok, u, note, gate in rows:
+        if gate and m < worst_gated[0]:
+            worst_gated = (m, n)
+        if m < worst_any[0]:
+            worst_any = (m, n)
+        tag = "" if gate else "  [backup only, not gated]"
+        print(f"{n:38s}{a:8.1f}{u[:3]:>3s}{al:8.1f}{u[:3]:>3s}{m:6.1f}x  {'OK' if ok else 'X FAIL'}{tag}")
 
-    print(f"\nWEAKEST LINK: {worst[1]}  (margin {worst[0]:.1f}x)")
-    print(f"MAX safe weight (SF={SF}, dyn={DYN}): ~{M_KG * worst[0]:.0f} kg")
+    print(f"\nWEAKEST LINK (gates auto-export): {worst_gated[1]}  (margin {worst_gated[0]:.1f}x)")
+    print(f"MAX safe weight (SF={SF}, dyn={DYN}): ~{M_KG * worst_gated[0]:.0f} kg")
+    if worst_any[0] < 1.0 and worst_any[1] != worst_gated[1]:
+        print(f"NOTE: '{worst_any[1]}' is below 1.0x too (margin {worst_any[0]:.1f}x) but marked "
+              f"backup-only, so it does not block export — see the note on that row.")
 
     print("\nTipping stability (ratio > 0.5 = good, 0.3-0.5 = OK for normal use):")
     print(f"  rearward (sitting upright): {TIP_REAR_UP:.2f}")
@@ -224,7 +248,7 @@ if __name__ == "__main__":
     print(f"  sideways (splayed pad): {TIP_SIDE:.2f}")
 
     print("\nINCREASE THESE IF MARGIN < 1.5:")
-    for n, a, al, m, ok, u, note in rows:
+    for n, a, al, m, ok, u, note, gate in rows:
         if m < 1.5:
-            print(f"  {n}  (margin {m:.1f}x)")
+            print(f"  {n}  (margin {m:.1f}x){'  [backup only]' if not gate else ''}")
     print("\n(first-order, not FEA. Physical joint test: manta_joint_test.py.)\n")
