@@ -52,7 +52,7 @@ First-order check (120 kg × 1.8 dynamic × 2.0 safety) re-derived live from
 the width/thickness tables: every member passes, weakest link 1.6×
 without glue (confirmed by hand-breaking a printed coupon that held on the
 pin alone), 4.8× at the weakest epoxied joint. Tipping 0.56 sideways,
-0.55–0.77 rearward, safe static load ~190 kg. Seat 430 × 430 mm, 455 mm
+0.55–0.77 rearward, safe static load ~190 kg. Seat 429 × 364 mm, 455 mm
 high, 3° rearward tilt, convex lumbar.
 
 ## Open design — nothing repeats

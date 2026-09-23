@@ -143,8 +143,8 @@ for k, v in bio:
     y += 158
 
 wrap((6180, 1560), "One gesture: fork-foot -> dished seat -> cantilevered backrest -> curled crown -> "
-     "tail-brace to the floor behind.  Seat 430 x 430 mm, 455 mm high, 3 deg rear tilt, convex "
-     "lumbar.  Overall 820 d x 700 w x 1030 h mm.", F(26), SUB, maxw=760, sp=6)
+     "tail-brace to the floor behind.  Seat 429 x 364 mm, 455 mm high, 3 deg rear tilt, convex "
+     "lumbar.  Overall 798 d x 685 w x 1012 h mm.", F(26), SUB, maxw=760, sp=6)
 
 dr.line((M, 2540, W-M, 2540), fill=TEAL, width=5)
 
