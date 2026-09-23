@@ -78,17 +78,62 @@ def render(fname, elev, azim, size, bg_top, bg_bot, zoom=1.0, focal=None, parall
         p.SetAmbient(0.22); p.SetDiffuse(0.85)
         ren.AddActor(act)
 
+    # ONE dominant raking light (not two opposing ones) — two strong grazing
+    # lights from near-opposite sides each catch a different longitudinal
+    # flute crest, which reads as two separate parallel ribbons instead of
+    # one continuous surface. A single dominant key light lets one sweeping
+    # highlight run the whole length instead.
     for vec, inten, cc in [((-0.5, -0.8, 0.55), 1.1, (1.0, 0.98, 0.94)),
                            ((0.75, -0.2, 0.3), 0.5, (0.6, 0.85, 0.95)),
                            ((0.1, 0.9, 0.5), 0.6, (0.55, 0.9, 0.9)),
                            ((-0.2, 0.3, -1.0), 0.25, (0.7, 0.95, 1.0)),
-                           ((-0.92, -0.35, 0.1), 1.5, (1.0, 1.0, 1.0)),     # strong raking side-light -> reveals the relief
-                           ((0.3, -0.9, -0.35), 1.3, (1.0, 1.0, 1.0))]:     # low light from below -> catches the legs
+                           ((-0.85, -0.45, 0.22), 1.6, (1.0, 1.0, 1.0)),    # single dominant key light -> one sweep, not two
+                           ((0.3, -0.9, -0.35), 0.35, (1.0, 1.0, 1.0))]:    # much dimmer fill from below -> just lifts the legs
         L = vtk.vtkLight(); L.SetLightTypeToSceneLight()
         d = np.array(vec, float); d /= np.linalg.norm(d)
         L.SetPosition(*(np.array(ctr) + d * diag * 3.0)); L.SetFocalPoint(*ctr)
         L.SetColor(*cc); L.SetIntensity(inten)
         ren.AddLight(L)
+
+    # ground plane + layered soft contact shadow + faint polish reflection —
+    # grounds the object (the buttress-root feet need a floor to read
+    # against) and makes the material feel solid, not just glassy
+    floor_z = zmin - 0.01 * HGT
+    plane = vtk.vtkPlaneSource()
+    plane.SetOrigin(ctr[0]-diag, ctr[1]-diag, floor_z)
+    plane.SetPoint1(ctr[0]+diag, ctr[1]-diag, floor_z)
+    plane.SetPoint2(ctr[0]-diag, ctr[1]+diag, floor_z)
+    pm = vtk.vtkPolyDataMapper(); pm.SetInputConnection(plane.GetOutputPort())
+    pa = vtk.vtkActor(); pa.SetMapper(pm)
+    pa.GetProperty().SetColor(*bg_bot)
+    pa.GetProperty().SetAmbient(1.0); pa.GetProperty().SetDiffuse(0.0)
+    ren.AddActor(pa)
+
+    for rad, op in [(WID * 0.28, 0.30), (WID * 0.50, 0.16), (WID * 0.80, 0.06)]:
+        shadow = vtk.vtkDiskSource()
+        shadow.SetInnerRadius(0); shadow.SetOuterRadius(rad)
+        shadow.SetCircumferentialResolution(64)
+        sm2 = vtk.vtkPolyDataMapper(); sm2.SetInputConnection(shadow.GetOutputPort())
+        sa = vtk.vtkActor(); sa.SetMapper(sm2)
+        sa.SetPosition(ctr[0], ctr[1], floor_z + 0.0015 * HGT)
+        sa.GetProperty().SetColor(0, 0, 0); sa.GetProperty().SetOpacity(op)
+        sa.GetProperty().SetAmbient(1.0); sa.GetProperty().SetDiffuse(0.0)
+        ren.AddActor(sa)
+
+    for pd in PDS:
+        rm = vtk.vtkPolyDataMapper(); rm.SetInputData(pd)
+        rm.SetLookupTable(ctf); rm.SetScalarModeToUsePointData()
+        rm.SetColorModeToMapScalars(); rm.ScalarVisibilityOn()
+        rm.SetScalarRange(zmin, zmax)
+        ra = vtk.vtkActor(); ra.SetMapper(rm)
+        ra.SetScale(1, 1, -1); ra.SetPosition(0, 0, 2 * floor_z)
+        ra.GetProperty().SetOpacity(0.16)
+        try:
+            ra.GetProperty().SetInterpolationToPBR()
+            ra.GetProperty().SetMetallic(0.03); ra.GetProperty().SetRoughness(0.75)
+        except Exception:
+            pass
+        ren.AddActor(ra)
 
     cam = ren.GetActiveCamera()
     e, a = math.radians(elev), math.radians(azim)
