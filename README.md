@@ -115,6 +115,12 @@ parts, same joints, ~40% less filament (**9.6 kg vs 16.2 kg**, run
 is a demonstration variant, not the competition entry — the competition
 files are untouched.
 
+Want to print it in more than one colour? `python manta_colour_guide.py`
+buckets the 41 segments into 4 filament colours by height (floor -> crown),
+matching the same gradient the renders already use — prints exactly which
+part numbers go in which colour and how many kg/EUR of each. Multi-colour
+costs nothing extra: it's the same total filament, just split across spools.
+
 ---
 
 ## How the joint holds (so you don't have to worry)

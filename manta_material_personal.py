@@ -24,7 +24,7 @@ INFILL = 0.20           # gyroid infill (0..1) — match manta_strength_check_pe
 WALLS = 5               # number of perimeter walls
 NOZZLE = 0.4            # mm
 PETG_DENSITY = 1.27     # g/cm3
-PRICE_PER_KG = 5.45    # EUR/kg — PUT YOUR FILAMENT PRICE HERE
+PRICE_PER_KG = 6.39    # EUR/kg — your actual filament price
 SPOOL_KG = 1.0          # kg per spool (for the spool-count conversion)
 PIN_QTY = 4             # how many times PIN.stl is actually printed (see PARTS_LIST.txt)
 # ════════════════════════════════════════
