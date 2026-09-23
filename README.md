@@ -104,6 +104,17 @@ error instead of quietly writing an unsafe STL. Run
 `python manta_strength_check.py` on its own any time for the full
 13-check breakdown.
 
+**A ready-made lighter variant — [`MANTA_LIGHT/`](MANTA_LIGHT).** Not
+everyone needs a chair rated for a 120 kg dynamic sitter. `manta_ribbon_personal.py`
+is the exact same generator with `TH_S` thinned to 75%; `manta_strength_check_personal.py`
+re-verifies it at a 90 kg design target (still a healthy margin over a single
+60 kg user, plus guests) — safe static load **~123 kg**, weakest joint
+**1.4x**. `MANTA_LIGHT/` is the already-generated, numbered result: same 42
+parts, same joints, ~40% less filament (**9.6 kg vs 16.2 kg**, run
+`manta_material_personal.py` for the cost at your own filament price). This
+is a demonstration variant, not the competition entry — the competition
+files are untouched.
+
 ---
 
 ## How the joint holds (so you don't have to worry)
