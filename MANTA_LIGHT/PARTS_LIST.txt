@@ -3,8 +3,10 @@ MANTA — numbered, pre-oriented printable parts (matches Board key)
 Personal/lighter variant (~90 kg design target, not the competition entry).
 Each file is pre-rotated to its own best support-free print orientation
 (python manta_orient.py) — import and print as-is, no manual rotation.
-All 42 parts land on a solid bed-contact footprint (>=400 mm2); no part
-needs a brim for adhesion.
+Wherever possible each part rests directly on one of its own two real
+cut/joint faces (guarantees the tenon points straight up/down, never
+sideways); all 42 parts land on a solid bed-contact footprint (>=400 mm2),
+no part needs a brim for adhesion.
 
 BOARD LEGEND  (42 items, limit 49)
  1. SEG_00L      1x
