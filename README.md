@@ -90,20 +90,25 @@ supports" territory regardless of what the note said.
 
 `manta_orient.py` searches candidate build directions per part and, wherever
 possible, rests it on one of its own **two real crosswise cut/joint faces**
-— found by clustering the mesh's genuinely-flat faces (~2.5° tolerance) and
-picking the two whose position sits at the actual ends of the part, not just
-whichever flat face is biggest (that can be the lengthwise L/R seam, or a
-tenon-base ring, which score well on footprint and overhang but aren't a
-joint face). This matters because a joint's tenon is perpendicular to *its*
-cut face by construction: resting on a real cut face guarantees the tenon
-points straight up or down, never sideways. Caught on a real test print of
-part 14 — a non-joint flat face scored well on paper but left the tenon
-sticking out to the side, needing a support the numbers never showed; on
-its actual cut face it prints clean. Falls back to the largest bed-contact
-footprint under a tolerable overhang when no cut face qualifies. The
+— matched by angle against the *exact* cut-face directions the generator
+itself used (`tangent(cuts[k])`, `tangent(cuts[k+1])`), not just whichever
+flat mesh surface is biggest or sits at the most extreme end (small fillets
+around a tenon's base can be flatter and more "extreme" than the real,
+much larger cut face, and got picked by mistake in an earlier version).
+This matters because a joint's tenon is perpendicular to *its own* cut face
+by construction: resting on the real cut face at the tenon's end points it
+straight up or down, never sideways. Caught on a real test print of part
+14 — a non-joint flat face scored well on footprint and overhang on paper,
+but left the tenon sticking out sideways needing a support the numbers
+never showed. On a strongly-curved segment the joint at the *other* end can
+still sit at an angle (the two ends of one segment aren't always parallel)
+— if your slicer flags a support there, it's a small one for just that
+tenon tip, not the whole part. Falls back to the largest bed-contact
+footprint under a tolerable overhang when no real cut face qualifies. The
 result: **every one of the 42 parts lands on a solid footprint (>=400 mm²)**,
-none need a brim; average overhang ~13% (worst ~25%). Run it yourself on any
-regenerated `SEG_*.stl` set: `python manta_orient.py MANTA_RIBBON`.
+none need a brim for adhesion; average overhang ~13% (worst ~25%). Run it
+yourself on any regenerated `SEG_*.stl` set:
+`python manta_orient.py MANTA_RIBBON manta_ribbon`.
 
 ---
 

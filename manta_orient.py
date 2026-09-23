@@ -9,23 +9,28 @@ averages ~18% of surface area, worst part ~38-40% — well past what a
 slicer will print without support, regardless of the STANDING label.
 
 This script first tries to rest each part on one of its own two REAL
-crosswise cut/joint faces -- found by clustering the mesh's genuinely-flat
-faces (~2.5deg tolerance) and picking the two whose centroid sits at the
-actual ends of the part (its local length axis), not just whichever flat
-face is biggest (that's often the lengthwise L/R seam, or a tenon-base
-ring -- large, flat, but not a joint face). This matters beyond footprint
-and overhang: a joint's tenon is perpendicular to ITS cut face by
-construction, so resting on a real cut face guarantees the tenon points
-straight up/down, never sideways. A non-joint flat face can score well on
-both footprint and overhang and still leave a tenon sticking out sideways,
-needing a support the numbers never showed -- caught on a real print of
-part 14. Falls back to a Fibonacci sweep + the mesh's other large flat
-faces, picking the largest bed-contact footprint under a tolerable
-overhang, when no real cut face qualifies. Then drops the part onto the
-bed (z_min=0) and overwrites the STL in place. Verified result across all
-42 parts, both the competition and personal-variant geometry: every part
-lands on a footprint >=400 mm2 (previously as low as ~70 mm2 on some),
-average overhang ~13%, worst ~25%.
+crosswise cut/joint faces -- matched by ANGLE against the exact cut-face
+directions the generator itself used (tangent(cuts[k]), tangent(cuts[k+1])),
+not by mesh position or size. An earlier version picked flat mesh clusters
+by which one sits at the most extreme end of the part, but a small fillet
+or chamfer near a tenon's base can be more "extreme" than the real, much
+larger cut face and got picked by mistake -- confirmed on part 14, where a
+~1700 mm2 fillet ring outscored the real ~12700 mm2 socket face on
+position alone, leaving the actual tenon sticking out sideways needing a
+support the footprint/overhang numbers never showed. Matching by angle to
+the known-exact tangent picks the true cut face regardless of what small
+flat features sit nearby, since a joint's tenon is perpendicular to ITS
+OWN cut face by construction -- resting on that face guarantees the tenon
+points straight up/down. (On a strongly-curved segment the joint at the
+OTHER end can still end up at an angle, since a segment's two ends aren't
+generally parallel -- if the slicer flags a support there, it's for that
+one small tenon tip, not the whole part.) Falls back to a Fibonacci sweep
++ the mesh's other large flat faces, picking the largest bed-contact
+footprint under a tolerable overhang, when no real cut face qualifies.
+Then drops the part onto the bed (z_min=0) and overwrites the STL in
+place. Verified result across all 42 parts, both the competition and
+personal-variant geometry: every part lands on a footprint >=400 mm2
+(previously as low as ~70 mm2 on some), average overhang ~13%, worst ~25%.
 
 RUN:  python manta_orient.py <folder> <generator_module>
       e.g. python manta_orient.py MANTA_RIBBON manta_ribbon
@@ -123,30 +128,34 @@ def flat_face_normals(mesh, min_cluster_frac=0.01):
     return clusters[:20]
 
 
-def real_cut_faces(mesh, tangent_dir, min_cluster_frac=0.01):
-    """Of the mesh's flat-face clusters, the two whose centroid sits at the
-    two extreme ends of the part along its own length axis (`tangent_dir`)
-    -- i.e. the actual crosswise joint faces (tenon end + socket end), as
-    opposed to some other large flat face (the lengthwise L/R seam, a
-    tenon-base ring) that happens to be bigger but sits partway along the
-    part. This distinction matters because a joint's conical tenon is
-    perpendicular to ITS cut face by construction: resting the part on one
-    of these two faces always points the tenon straight up or down. Resting
-    it on some other flat face can leave the tenon sticking out sideways,
-    needing support even though the chosen face itself looked fine on
-    paper (confirmed on a real print of part 14 — good footprint, good
-    overhang%, but the tenon stuck out to the side)."""
+def real_cut_faces(mesh, exact_tangents, min_cluster_frac=0.01, max_angle_deg=8.0):
+    """Of the mesh's flat-face clusters, whichever one best matches each of
+    `exact_tangents` (normally [tangent(cuts[k]), tangent(cuts[k+1])] from
+    the generator, EXACT by construction -- a cut face is perpendicular to
+    the ribbon's own tangent at that station). Matched by angle, not
+    position: an earlier version picked flat clusters by which one sits at
+    the most extreme end of the part, but a cone-base fillet or chamfer
+    can create a small flat ring that's positioned even more extreme than
+    the real, much-larger cut face itself, and got picked by mistake --
+    confirmed on part 14, where a ~1700 mm2 fillet ring outscored the real
+    ~12700 mm2 socket face on position alone. Matching by angle to the
+    exact analytical tangent (within `max_angle_deg`) picks the true cut
+    face regardless of what other small flat features sit nearby, and
+    resting on it guarantees this part's tenon points straight up or down,
+    never sideways, since the tenon is perpendicular to *its own* cut face
+    by construction -- resting on any other flat face doesn't carry that
+    guarantee, even one with a great footprint/overhang score."""
     clusters = flat_face_normals(mesh, min_cluster_frac)
-    if not clusters:
-        return []
-    t = tangent_dir / np.linalg.norm(tangent_dir)
-    proj = [np.dot(c, t) for _, _, c in clusters]
-    lo_i = int(np.argmin(proj))
-    hi_i = int(np.argmax(proj))
     out = []
-    if lo_i != hi_i:
-        out.append(clusters[lo_i][1])
-        out.append(clusters[hi_i][1])
+    for et in exact_tangents:
+        t = et / np.linalg.norm(et)
+        best = None
+        for a, n, c in clusters:
+            ang = np.degrees(np.arccos(np.clip(abs(np.dot(n, t)), -1, 1)))
+            if ang <= max_angle_deg and (best is None or a > best[0]):
+                best = (a, n)
+        if best is not None:
+            out.append(best[1])
     return out
 
 
@@ -199,20 +208,23 @@ def best_orientation(mesh, n=100, max_overhang_pct=25.0, min_footprint_mm2=400.0
     return max(near_best, key=lambda c: c[2])
 
 
-def segment_mid_tangent(fname, gen):
-    """This segment's local length axis (the ribbon's tangent at its
-    midpoint) -- used to tell the mesh's two actual crosswise cut-face
-    clusters apart from any other large flat face (the lengthwise L/R
-    seam, a tenon-base ring) that isn't at either end of the part."""
+def segment_cut_tangents(fname, gen):
+    """This segment's two exact cut-face directions, straight from the
+    generator: tangent(cuts[k]) at the socket end, tangent(cuts[k+1]) at
+    the tenon end -- exact by construction, since a cut face is defined
+    perpendicular to the ribbon's tangent at that station. Also returns
+    their midpoint (a reasonable general-purpose priority direction)."""
     m = re.match(r"(?:\d+_)?SEG_(\d+)", os.path.basename(fname))
     if not m:
-        return None
+        return None, []
     k = int(m.group(1))
     cuts = gen.cut_stations()
     if k + 1 >= len(cuts):
-        return None
-    smid = 0.5 * (cuts[k] + cuts[k + 1])
-    return np.array(gen.tangent(smid))
+        return None, []
+    t_start = np.array(gen.tangent(cuts[k]))
+    t_end = np.array(gen.tangent(cuts[k + 1]))
+    mid = np.array(gen.tangent(0.5 * (cuts[k] + cuts[k + 1])))
+    return mid, [t_start, t_end]
 
 
 def main(folder, gen_name="manta_ribbon"):
@@ -224,9 +236,9 @@ def main(folder, gen_name="manta_ribbon"):
     for f in files:
         m = trimesh.load(f)
         before = overhang_pct(m.face_normals, m.area_faces, m.area)
-        tdir = segment_mid_tangent(f, gen)
-        cut_faces = real_cut_faces(m, tdir) if tdir is not None else []
-        pri = [tdir] if tdir is not None else []
+        mid, exact_tangents = segment_cut_tangents(f, gen)
+        cut_faces = real_cut_faces(m, exact_tangents) if exact_tangents else []
+        pri = [mid] if mid is not None else []
         pct, R, fp = best_orientation(m, priority_dirs=pri, cut_faces=cut_faces)
         T = np.eye(4); T[:3, :3] = R
         m.apply_transform(T)
