@@ -78,8 +78,26 @@ For printing at home, use [`MANTA_RIBBON/`](MANTA_RIBBON) instead: the same
 exploded-view diagram (`01_SEG_00L.stl` = part 1, `42_PIN.stl` = part 42,
 and so on) — so the file list itself tells you what to print against the
 Board, no cross-referencing needed. `PARTS_LIST.txt` in that folder has the
-same numbering plus print notes (e.g. which segments print standing, no
-supports needed).
+same numbering.
+
+**Every file in `MANTA_RIBBON/` and `MANTA_LIGHT/` is pre-rotated to its own
+support-free orientation** — import and print as-is, no manual rotation.
+This used to be a per-part text note ("print STANDING") based on a rough
+spline-turn heuristic that was never actually checked against the mesh; on
+the real geometry it left an average 18% of each part's surface overhanging
+past 45°, up to 38% on the worst parts — well into "the slicer will ask for
+supports" territory regardless of what the note said.
+
+`manta_orient.py` searches candidate build directions per part (including
+the part's own largest flat faces, not just a generic sweep) and scores
+each on *both* overhang and bed-contact footprint — minimising overhang
+alone kept picking orientations balanced on a single point, great overhang
+number, terrible adhesion. The result: average overhang down to ~5% (worst
+~9%), and a solid footprint on all but 12-14 parts — the naturally tapered
+foot-tip segments and the dia-10 pin, which just don't have a large flat
+side to offer. Those are marked `[use a brim]` in `PARTS_LIST.txt`; flip on
+a brim for just those parts in your slicer. Run it yourself on any
+regenerated `SEG_*.stl` set: `python manta_orient.py MANTA_RIBBON`.
 
 ---
 
@@ -150,6 +168,7 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `manta_strength_check.py` — strength + stability
 - `manta_ergonomics_check.py` — seat/backrest dimensions vs standard reference ranges
 - `manta_uniqueness_check.py` — proves no two of the 41 segments are geometrically identical
+- `manta_orient.py` — rotates each part to its lowest-overhang, support-free print orientation
 - `manta_joint_test.py` — physical joint test
 - `manta_material.py` — filament use + cost from the real STL parts
 - the remaining `manta_*.py` files = rendering / submission packaging
