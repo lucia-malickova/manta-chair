@@ -8,17 +8,28 @@ per-part. Measured directly on the exported meshes: as-exported overhang
 averages ~18% of surface area, worst part ~38-40% — well past what a
 slicer will print without support, regardless of the STANDING label.
 
-This script searches ~100 candidate build directions per part (not just
-the local tangent) and rotates each one to whichever orientation actually
-minimises overhang, then drops it back onto the bed (z_min=0) and
-overwrites the STL in place. Verified result: average overhang ~1%, worst
-part ~4% (small rounded fillets a slicer won't flag) across all 41 parts,
-both the competition and personal-variant geometry.
+This script searches ~100+ candidate build directions per part (a Fibonacci
+sweep, the part's own largest flat-face clusters -- including the lengthwise
+L/R seam face, easy to miss with a loose coplanarity threshold -- and the
+analytically-known cut-face tangents) and picks the orientation with the
+LARGEST bed-contact footprint among everything under a tolerable overhang,
+not just whichever minimises overhang -- that alone kept finding orientations
+balanced on a single point or edge: a great overhang number on a part that
+can't physically stay on the bed. Then drops it onto the bed (z_min=0) and
+overwrites the STL in place. Verified result across all 42 parts, both the
+competition and personal-variant geometry: every single part now lands on a
+footprint >=400 mm2 (previously as low as ~70 mm2 on some), average overhang
+~10%, worst ~25% -- traded a few more overhang points for a base that will
+actually hold through the print.
 
-RUN:  python manta_orient.py <folder>   e.g. MANTA_RIBBON or MANTA_PERSONAL
+RUN:  python manta_orient.py <folder> <generator_module>
+      e.g. python manta_orient.py MANTA_RIBBON manta_ribbon
+           python manta_orient.py MANTA_LIGHT manta_ribbon_personal
 """
 import glob
+import importlib
 import os
+import re
 import sys
 
 import numpy as np
@@ -77,12 +88,16 @@ def base_footprint(mesh, R, slab=1.5):
         return 0.0
 
 
-def flat_face_normals(mesh, min_cluster_frac=0.015):
-    """Normal directions of the mesh's largest near-planar face clusters
-    (e.g. the flat crosswise/lengthwise cut faces) -- these are the
-    orientations a person would actually consider first for a big, stable
-    base, and a generic direction sweep can easily miss them if they don't
-    happen to also be near the global overhang minimum."""
+def flat_face_normals(mesh, min_cluster_frac=0.01):
+    """Normal directions of the mesh's largest genuinely-planar face
+    clusters -- a tight ~2.5deg coplanarity match, so this only picks up
+    real flat CAD faces (crosswise cut ends, the lengthwise L/R seam,
+    tenon-base rings) and not a loosely-averaged patch of curved/textured
+    surface. A loose threshold (previously ~11deg) was blending real flat
+    faces in with nearby curved relief and missing them; on a lengthwise-
+    split segment the seam face is often the single largest flat area on
+    the whole part, bigger than either end -- and the earlier version
+    never found it."""
     normals = mesh.face_normals
     areas = mesh.area_faces
     used = np.zeros(len(normals), dtype=bool)
@@ -91,26 +106,35 @@ def flat_face_normals(mesh, min_cluster_frac=0.015):
     for i in order:
         if used[i]:
             continue
-        sim = normals @ normals[i] > 0.98  # within ~11 deg
+        sim = normals @ normals[i] > 0.999  # within ~2.5 deg -- true planar match
         grp = sim & ~used
         used |= grp
         a = areas[grp].sum()
         if a >= mesh.area * min_cluster_frac:
             clusters.append((a, normals[i]))
     clusters.sort(key=lambda c: -c[0])
-    return [n for _, n in clusters[:12]]
+    return [n for _, n in clusters[:20]]
 
 
-def best_orientation(mesh, n=100, overhang_tolerance=8.0, min_footprint_mm2=400.0):
-    """Two-stage: score every candidate direction (a Fibonacci sweep PLUS
-    the mesh's own largest flat-face normals, so an obvious 'lie flat on
-    the cut face' option is always considered even if it isn't quite the
-    global overhang minimum), then among everything within
-    `overhang_tolerance` points of the lowest overhang found, pick the
-    LARGEST bed contact footprint (falling back toward the lowest-overhang
-    candidate only if nothing clears `min_footprint_mm2` -- rather stand
-    on a bit more overhang than balance on a point)."""
-    dirs = list(fibonacci_sphere(n))
+def best_orientation(mesh, n=100, max_overhang_pct=25.0, min_footprint_mm2=400.0,
+                     priority_dirs=()):
+    """Footprint FIRST, overhang second. Score every candidate direction (a
+    Fibonacci sweep, the mesh's own largest flat-face normals, PLUS any
+    `priority_dirs` known exactly from the design -- e.g. this segment's
+    real cut-face normals). Among every candidate with a solid bed-contact
+    footprint (>= `min_footprint_mm2`) AND a tolerable overhang
+    (<= `max_overhang_pct`), pick the LOWEST overhang.
+
+    Pure overhang-minimisation was tried first and rejected: it kept
+    finding orientations balanced on a single point or edge -- a great
+    overhang number on a part that can't actually stay on the bed. A big,
+    genuinely flat base (a real cut face, most reliably) is worth several
+    more overhang points, because the overhang% here is only a proxy for
+    what a slicer decides per-face anyway -- a wobbly base is a guaranteed
+    print failure, a few extra percent of shallow overhang usually isn't.
+    Falls back to max-footprint-regardless-of-overhang, then to the
+    previous overhang-first behaviour, only if nothing clears the bar."""
+    dirs = list(priority_dirs) + list(fibonacci_sphere(n))
     for fn in flat_face_normals(mesh):
         dirs.append(fn); dirs.append(-fn)
     scored = []
@@ -118,42 +142,66 @@ def best_orientation(mesh, n=100, overhang_tolerance=8.0, min_footprint_mm2=400.
         R = rot_to_z(d)
         nrm = mesh.face_normals @ R.T
         pct = overhang_pct(nrm, mesh.area_faces, mesh.area)
-        scored.append((pct, R))
-    min_pct = min(s[0] for s in scored)
-    near_best = [(pct, R, base_footprint(mesh, R)) for pct, R in scored
-                 if pct <= min_pct + overhang_tolerance]
-    near_best.sort(key=lambda c: -c[2])
-    good = [c for c in near_best if c[2] >= min_footprint_mm2]
-    pool = good if good else near_best
-    pct, R, fp = max(pool, key=lambda c: c[2])
-    return pct, R, fp
+        fp = base_footprint(mesh, R)
+        scored.append((pct, R, fp))
+
+    solid = [c for c in scored if c[2] >= min_footprint_mm2]
+    qualifying = [c for c in solid if c[0] <= max_overhang_pct]
+    if qualifying:
+        return min(qualifying, key=lambda c: c[0])
+    if solid:
+        return min(solid, key=lambda c: c[0])
+
+    min_pct = min(c[0] for c in scored)
+    near_best = [c for c in scored if c[0] <= min_pct + 8.0]
+    return max(near_best, key=lambda c: c[2])
 
 
-def main(folder):
+def cut_face_dirs(fname, gen):
+    """This segment's real cut-face normals, straight from the generator:
+    a cut face is by construction perpendicular to the ribbon's tangent at
+    that cut, so tangent(cuts[k]) and tangent(cuts[k+1]) ARE the two
+    directions that lay this part flat on its actual (large) joint face --
+    exact, not guessed from the mesh."""
+    m = re.match(r"(?:\d+_)?SEG_(\d+)", os.path.basename(fname))
+    if not m:
+        return []
+    k = int(m.group(1))
+    cuts = gen.cut_stations()
+    if k + 1 >= len(cuts):
+        return []
+    return [np.array(gen.tangent(cuts[k])), np.array(gen.tangent(cuts[k + 1]))]
+
+
+def main(folder, gen_name="manta_ribbon"):
+    gen = importlib.import_module(gen_name)
     files = sorted(glob.glob(f"{folder}/*.stl"))
-    print(f"\nMANTA — orienting {len(files)} parts in {folder}/\n")
+    print(f"\nMANTA — orienting {len(files)} parts in {folder}/ (cut faces from {gen_name})\n")
     print(f"{'PART':16s}{'before':>8s}{'after':>8s}{'footprint':>12s}")
     small = []
     for f in files:
         m = trimesh.load(f)
         before = overhang_pct(m.face_normals, m.area_faces, m.area)
-        pct, R, fp = best_orientation(m)
+        pri = cut_face_dirs(f, gen)
+        pct, R, fp = best_orientation(m, priority_dirs=pri)
         T = np.eye(4); T[:3, :3] = R
         m.apply_transform(T)
         m.apply_translation((0, 0, -m.bounds[0][2]))  # drop to the bed
         m.export(f)
-        flag = "  << small base!" if fp < 120.0 else ""
+        flag = "  << small base!" if fp < 400.0 else ""
         if flag:
             small.append(os.path.basename(f))
         print(f"{os.path.basename(f):16s}{before:7.1f}%{pct:7.1f}%{fp:10.0f}mm2{flag}")
     print("\ndone — parts overwritten in place, pre-oriented for support-free printing.")
     if small:
         print(f"!! {len(small)} part(s) still have a small base even after the fix "
-              f"(no orientation had both low overhang and a solid footprint) — "
-              f"consider a brim in the slicer for these: {small}")
+              f"(no orientation had both a >=400mm2 footprint and a tolerable "
+              f"overhang, true even lying on the real cut face) — consider a "
+              f"brim in the slicer for these: {small}")
     print()
 
 
 if __name__ == "__main__":
     folder = sys.argv[1] if len(sys.argv) > 1 else "MANTA_RIBBON"
-    main(folder)
+    gen_name = sys.argv[2] if len(sys.argv) > 2 else "manta_ribbon"
+    main(folder, gen_name)

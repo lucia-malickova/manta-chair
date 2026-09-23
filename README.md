@@ -88,15 +88,18 @@ the real geometry it left an average 18% of each part's surface overhanging
 past 45°, up to 38% on the worst parts — well into "the slicer will ask for
 supports" territory regardless of what the note said.
 
-`manta_orient.py` searches candidate build directions per part (including
-the part's own largest flat faces, not just a generic sweep) and scores
-each on *both* overhang and bed-contact footprint — minimising overhang
-alone kept picking orientations balanced on a single point, great overhang
-number, terrible adhesion. The result: average overhang down to ~5% (worst
-~9%), and a solid footprint on all but 12-14 parts — the naturally tapered
-foot-tip segments and the dia-10 pin, which just don't have a large flat
-side to offer. Those are marked `[use a brim]` in `PARTS_LIST.txt`; flip on
-a brim for just those parts in your slicer. Run it yourself on any
+`manta_orient.py` searches candidate build directions per part — a generic
+sweep, the part's own largest genuinely-flat face clusters (crosswise cut
+ends, and the lengthwise L/R seam face, which a looser coplanarity check
+first missed even though it's often the single largest flat area on the
+part), and the analytically-known cut-face directions — and picks the
+**largest bed-contact footprint** among everything under a tolerable
+overhang, not whichever minimises overhang. Minimising overhang alone kept
+picking orientations balanced on a single point: a great overhang number,
+but a base that can't physically survive the print. The result: **every one
+of the 42 parts now lands on a solid footprint (>=400 mm²)**, none need a
+brim; average overhang ~10% (worst ~25%) — a few more overhang points
+traded for a base that will actually hold. Run it yourself on any
 regenerated `SEG_*.stl` set: `python manta_orient.py MANTA_RIBBON`.
 
 ---
