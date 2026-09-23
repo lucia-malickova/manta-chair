@@ -1,11 +1,12 @@
 BOARD LEGEND  (42 items, limit 49)
-Each file is pre-rotated to its own lowest-overhang orientation -- import
-and print as-is, no manual rotation needed, no supports required.
+Each file is pre-rotated to its own best support-free orientation --
+import and print as-is, no manual rotation needed. A few small-tipped
+parts are marked [use a brim] for better bed adhesion.
 
- 1. 01_SEG_00L      1x
- 2. 02_SEG_00R      1x
- 3. 03_SEG_01L      1x
- 4. 04_SEG_01R      1x
+ 1. 01_SEG_00L      1x  [use a brim]
+ 2. 02_SEG_00R      1x  [use a brim]
+ 3. 03_SEG_01L      1x  [use a brim]
+ 4. 04_SEG_01R      1x  [use a brim]
  5. 05_SEG_02L      1x
  6. 06_SEG_02R      1x
  7. 07_SEG_03L      1x
@@ -14,10 +15,10 @@ and print as-is, no manual rotation needed, no supports required.
 10. 10_SEG_04R      1x
 11. 11_SEG_05L      1x
 12. 12_SEG_05R      1x
-13. 13_SEG_06L      1x
-14. 14_SEG_06R      1x
+13. 13_SEG_06L      1x  [use a brim]
+14. 14_SEG_06R      1x  [use a brim]
 15. 15_SEG_07L      1x
-16. 16_SEG_07R      1x
+16. 16_SEG_07R      1x  [use a brim]
 17. 17_SEG_08L      1x
 18. 18_SEG_08R      1x
 19. 19_SEG_09L      1x
@@ -37,13 +38,13 @@ and print as-is, no manual rotation needed, no supports required.
 33. 33_SEG_18       1x
 34. 34_SEG_19L      1x
 35. 35_SEG_19R      1x
-36. 36_SEG_20L      1x
-37. 37_SEG_20R      1x
-38. 38_SEG_21L      1x
-39. 39_SEG_21R      1x
-40. 40_SEG_22L      1x
-41. 41_SEG_22R      1x
-42. 42_PIN          4x
+36. 36_SEG_20L      1x  [use a brim]
+37. 37_SEG_20R      1x  [use a brim]
+38. 38_SEG_21L      1x  [use a brim]
+39. 39_SEG_21R      1x  [use a brim]
+40. 40_SEG_22L      1x  [use a brim]
+41. 41_SEG_22R      1x  [use a brim]
+42. 42_PIN          4x  [use a brim]
 
 crosswise joint (baguette-cut): conical tenon dia 32 + two-part epoxy
 lengthwise joint (L/R seam): transverse tenon dia 24 + epoxy
