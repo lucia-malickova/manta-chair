@@ -62,6 +62,22 @@ at every cut, and a dia 10 pin only at the lumbar joints.
 
 ---
 
+## Printing the parts
+
+`TEAMID_Assembly.stl` is the **competition submission** format: all 42 parts
+placed inside the official `3D_Template.stl` grid, because the brief
+requires that. That template geometry is a non-solid reference grid (lines +
+text, not a printable object) — a slicer will still try to load it alongside
+your parts, which is confusing and pointless for an actual print.
+
+For printing at home, use [`MANTA_RIBBON/`](MANTA_RIBBON) instead: the same
+42 parts (`SEG_*.stl` + `PIN.stl`), each its own clean file with no template
+geometry, exactly as `manta_ribbon.py` exports them. `PARTS_LIST.txt` in
+that folder gives the part numbers (matching the Board's key) and print
+notes (e.g. which segments print standing, no supports needed).
+
+---
+
 ## How to tune it
 
 Everything is set in the `PARAMETERS` block at the top of `manta_ribbon.py`:
@@ -106,3 +122,4 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `MANTA_Description_DRAFT.md` — the description text (edit, then run `manta_pdf.py`)
 - `_board_base.png` — the rasterised official board template (without instructions)
 - `3D_Template.stl` — the official 3D print file template (unmodified, as provided)
+- `MANTA_RIBBON/` — the 42 individual part STLs, clean and ready to print (no template geometry) — see "Printing the parts" above
