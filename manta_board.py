@@ -129,7 +129,7 @@ cx = 6180
 section((cx, 470), "BIOMIMICRY", size=27)
 dr.text((cx + 24, 508), "structural, not applied", font=F(21), fill=SUB)
 bio = [
- ("Wolff", "section thickness = the bending-moment diagram: 90 mm at the lumbar knot, 26 mm blade at the crown"),
+ ("Wolff", "section thickness = the bending-moment diagram: 84 mm at the lumbar knot, 32 mm blade at the crown"),
  ("Murray", "the lumbar is the one 3-way node; section ~ cube-root-sum, all transitions filleted"),
  ("Spiral fibre", "longitudinal flutes follow the stress path + stiffen by corrugation; section twists up to 20 deg"),
  ("Shell", "closed superelliptical section + dished seat carry load in membrane action"),

@@ -18,8 +18,8 @@ stay tactile without ever pressing into a bone.
 Every centimetre of the section is set by a biological rule, and each is
 load-bearing:
 
-- **Wolff's law** — thickness follows the bending moment: 90 mm at the lumbar
-  knot, 66 mm at the knee, a 26 mm blade at the crown.
+- **Wolff's law** — thickness follows the bending moment: 84 mm at the lumbar
+  knot, 50 mm at the knee, a 32 mm blade at the crown.
 - **Murray's law** — the lumbar, the one true junction, is the cube-root-sum
   of seat, backrest and tail; every transition filleted.
 - **Spiral fibre** — the flutes follow the stress path and stiffen by
