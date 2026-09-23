@@ -95,20 +95,17 @@ def render(fname, elev, azim, size, bg_top, bg_bot, zoom=1.0, focal=None, parall
         L.SetColor(*cc); L.SetIntensity(inten)
         ren.AddLight(L)
 
-    # ground plane + layered soft contact shadow + faint polish reflection —
-    # grounds the object (the buttress-root feet need a floor to read
-    # against) and makes the material feel solid, not just glassy
+    # layered soft contact shadow + faint polish reflection — grounds the
+    # object (the buttress-root feet need a floor to read against) and
+    # makes the material feel solid, not just glassy.
+    # NOTE: deliberately NO opaque floor plane here — an opaque plane at
+    # floor level blocks the line of sight to the reflection (which sits
+    # BELOW that level) from any elevated/downward camera angle. It only
+    # looked fine in the pure side-on view because a flat plane seen
+    # perfectly edge-on has no projected area, so it couldn't occlude
+    # anything there. The shadow discs alone read as "floor" against the
+    # gradient background at every angle.
     floor_z = zmin - 0.01 * HGT
-    plane = vtk.vtkPlaneSource()
-    plane.SetOrigin(ctr[0]-diag, ctr[1]-diag, floor_z)
-    plane.SetPoint1(ctr[0]+diag, ctr[1]-diag, floor_z)
-    plane.SetPoint2(ctr[0]-diag, ctr[1]+diag, floor_z)
-    pm = vtk.vtkPolyDataMapper(); pm.SetInputConnection(plane.GetOutputPort())
-    pa = vtk.vtkActor(); pa.SetMapper(pm)
-    pa.GetProperty().SetColor(*bg_bot)
-    pa.GetProperty().SetAmbient(1.0); pa.GetProperty().SetDiffuse(0.0)
-    ren.AddActor(pa)
-
     for rad, op in [(WID * 0.28, 0.30), (WID * 0.50, 0.16), (WID * 0.80, 0.06)]:
         shadow = vtk.vtkDiskSource()
         shadow.SetInnerRadius(0); shadow.SetOuterRadius(rad)
