@@ -137,42 +137,52 @@ img("b_back.png", (3830, 486, 4720, 2170))
 img("b_top.png",  (3060, 2110, 4360, 2500))
 
 # ============ STRUCTURE & STABILITY (clear space, right of top view) ============
-section((4790, 470), "STRUCTURE & STABILITY", size=30)
-wrap((4790, 522), "First-order check at 120 kg x 1.8 dynamic x 2.0 safety — every member passes.",
-     F(24), SUB, maxw=1300, sp=5)
+section((4790, 470), "STRUCTURE & STABILITY", size=34)
+wrap((4790, 530), "First-order check at 120 kg x 1.8 dynamic x 2.0 safety — every member passes.",
+     F(28), SUB, maxw=1320, sp=6)
 stats = [
     ("192 kg", "safe static load"),
-    ("4.8x", "weakest epoxied joint margin  (1.6x on the tenon + pin alone, no glue — hand-break tested)"),
-    ("0.56 / 0.77", "tipping ratio, sideways / rearward  (>0.5 = stable)"),
+    ("4.8x", "weakest epoxied joint margin — 1.6x on the tenon + pin alone, no glue (hand-break tested)"),
+    ("0.56 / 0.77", "tipping ratio, sideways / rearward — greater than 0.5 counts as stable"),
 ]
-sy = 640
+sy = 660
 for big, label in stats:
-    dr.text((4790, sy), big, font=F(84, True), fill=TEAL_DK)
-    wrap((4790, sy + 106), label, F(24), SUB, maxw=1320, sp=5)
-    sy += 250
+    dr.text((4790, sy), big, font=F(108, True), fill=TEAL_DK)
+    wrap((4790, sy + 136), label, F(28), SUB, maxw=1330, sp=7)
+    sy += 400
 
-# biomimicry / concept callouts (top right)
+# dimensions strip — fills the rest of this column, still well clear of the
+# key grid (which starts further right at x~6120)
+dr.line((4790, sy - 30, 4790 + 1330, sy - 30), fill=HAIR, width=3)
+dr.text((4790, sy), "429 x 364", font=F(46, True), fill=TEAL_DK)
+dr.text((4790, sy + 58), "seat W x D, mm", font=F(20), fill=SUB)
+dr.text((4790 + 420, sy), "455", font=F(46, True), fill=TEAL_DK)
+dr.text((4790 + 420, sy + 58), "seat height, mm", font=F(20), fill=SUB)
+dr.text((4790 + 780, sy), "3 deg", font=F(46, True), fill=TEAL_DK)
+dr.text((4790 + 780, sy + 58), "rearward tilt", font=F(20), fill=SUB)
+dr.text((4790, sy + 140), "798 x 685 x 1012", font=F(40, True), fill=TEAL_DK)
+dr.text((4790, sy + 190), "overall D x W x H, mm", font=F(20), fill=SUB)
+wrap((4790, sy + 250), "Every dimension checked against seating-ergonomics reference "
+     "ranges by script — 8/8 pass.", F(23), SUB, maxw=1330, sp=6)
+
+# biomimicry / concept callouts (top right) — kept clear of the key grid,
+# which starts at y~1700 in this column
 cx = 6180
-section((cx, 470), "BIOMIMICRY", size=27)
-dr.text((cx + 24, 508), "structural, not applied", font=F(21), fill=SUB)
+section((cx, 470), "BIOMIMICRY", size=32)
+dr.text((cx + 26, 512), "structural, not applied", font=F(23), fill=SUB)
 bio = [
- ("Wolff", "section thickness = the bending-moment diagram: 84 mm at the lumbar knot, 32 mm blade at the crown"),
- ("Murray", "the lumbar is the one 3-way node; section ~ cube-root-sum, all transitions filleted"),
- ("Spiral fibre", "longitudinal flutes follow the stress path + stiffen by corrugation; section twists up to 20 deg"),
- ("Shell", "closed superelliptical section + dished seat carry load in membrane action"),
- ("Fiddlehead", "the curled crown closes the backrest into a tube, not a cantilever"),
- ("Buttress root", "each foot forks into two splayed prongs — wide base, few contacts, little material"),
+ ("Wolff's law", "thickness follows the bending moment: 84 mm at the lumbar knot, 32 mm blade at the crown"),
+ ("Murray's law", "the lumbar is the one 3-way node; section ~ cube-root-sum, every transition filleted"),
+ ("Spiral fibre", "flutes follow the stress path + stiffen by corrugation; section twists up to 20 deg"),
+ ("Shell curvature", "closed superelliptical section + dished seat carry load in membrane action"),
+ ("Fiddlehead scroll", "the curled crown closes the backrest into a rigid loop, not a cantilever"),
+ ("Buttress root", "each foot forks into two splayed prongs — wide base, little material"),
 ]
-y = 550
+y = 562
 for k, v in bio:
-    dr.text((cx, y), k, font=F(26, True), fill=INK)
-    wrap((cx, y+34), v, F(22), SUB, maxw=680, sp=5)
-    y += 158
-
-wrap((6180, 1560), "One gesture: fork-foot -> dished seat -> cantilevered backrest -> curled crown -> "
-     "tail-brace to the floor behind.  Seat 429 x 364 mm, 455 mm high, 3 deg rear tilt, convex "
-     "lumbar.  Overall 798 d x 685 w x 1012 h mm.  Every dimension checked against seating-"
-     "ergonomics reference ranges by script (8/8 pass).", F(26), SUB, maxw=760, sp=6)
+    dr.text((cx, y), k, font=F(27, True), fill=INK)
+    wrap((cx, y+36), v, F(22), SUB, maxw=770, sp=5)
+    y += 168
 
 dr.line((M, 2540, W-M, 2540), fill=TEAL, width=5)
 
@@ -192,11 +202,11 @@ steps = [
 ]
 sx = 3230
 for i, (n, t, b) in enumerate(steps):
-    yy = 2700 + i*350
-    dr.ellipse((sx, yy, sx+66, yy+66), fill=TEAL)
-    dr.text((sx+33, yy+33), n, font=F(34, True), fill=(255, 255, 255), anchor="mm")
-    dr.text((sx+104, yy-2), t, font=F(37, True), fill=INK)
-    wrap((sx+104, yy+54), b, F(28), SUB, maxw=1640, sp=7)
+    yy = 2700 + i*300
+    dr.ellipse((sx, yy, sx+92, yy+92), fill=TEAL)
+    dr.text((sx+46, yy+46), n, font=F(46, True), fill=(255, 255, 255), anchor="mm")
+    dr.text((sx+128, yy+2), t, font=F(46, True), fill=INK)
+    wrap((sx+128, yy+66), b, F(33), SUB, maxw=1680, sp=9)
 
 dr.line((5170, 2560, 5170, 4770), fill=TEAL, width=4)
 
