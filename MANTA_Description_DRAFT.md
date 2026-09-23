@@ -48,17 +48,18 @@ beside the lumbar get an added Ø10 pin. No screws, no brackets.
 
 ## Stability and load
 
-First-order check at 120 kg × 1.8 dynamic × 2.0 safety: every member passes,
-weakest link 1.4× without glue (15× with epoxy — confirmed by hand-breaking
-a printed coupon that held on the pin alone). Tipping 0.56 sideways,
-0.55–0.77 rearward, safe static load ~166 kg. Seat 430 × 430 mm, 455 mm
+First-order check (120 kg × 1.8 dynamic × 2.0 safety) re-derived live from
+the width/thickness tables: every member passes, weakest link 1.6×
+without glue (confirmed by hand-breaking a printed coupon that held on the
+pin alone), 4.8× at the weakest epoxied joint. Tipping 0.56 sideways,
+0.55–0.77 rearward, safe static load ~190 kg. Seat 430 × 430 mm, 455 mm
 high, 3° rearward tilt, convex lumbar.
 
 ## Open design — nothing repeats
 
 Nothing in nature repeats, so no two parts of this chair do either: all 41
-segments are geometrically unique (only the small locking pin repeats). The
-mass is a choice, not a default — thin shells don't glue into strong joints.
-One parametric script: change the tables and it regenerates a leaner
-variant with the same joints, so no one has to own the same chair. Full
-source, anonymised for review: anonymous.4open.science/r/manta-chair-23D4
+segments are geometrically unique (only the small locking pin repeats). One
+parametric script: change the tables and it regenerates a leaner variant
+with the same joints — automatically re-checked against the same load
+case, so it can't silently export a variant that fails. Full source,
+anonymised for review: anonymous.4open.science/r/manta-chair-23D4

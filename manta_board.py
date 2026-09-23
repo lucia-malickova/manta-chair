@@ -114,8 +114,8 @@ section((4790, 470), "STRUCTURE & STABILITY", size=30)
 wrap((4790, 522), "First-order check at 120 kg x 1.8 dynamic x 2.0 safety — every member passes.",
      F(24), SUB, maxw=1300, sp=5)
 stats = [
-    ("166 kg", "safe static load"),
-    ("15x", "weakest joint margin, epoxied  (1.4x on the tenon + pin alone, no glue — hand-break tested)"),
+    ("192 kg", "safe static load"),
+    ("4.8x", "weakest epoxied joint margin  (1.6x on the tenon + pin alone, no glue — hand-break tested)"),
     ("0.56 / 0.77", "tipping ratio, sideways / rearward  (>0.5 = stable)"),
 ]
 sy = 640
@@ -160,7 +160,7 @@ steps = [
  ("3", "Left + right halves", "Wide segments come in L+R halves. Join along the centre-line with the transverse tenon (dia 24) + epoxy; the seam is the keel."),
  ("4", "Lumbar pins", "Only the two joints beside the lumbar: drive the dia 10 printed pin (x2) through the joint before the epoxy sets."),
  ("5", "Sub-assemble, cure", "Build seat, backrest and each fork-foot separately. Cure 24 h. Then join at the lumbar and the two knees."),
- ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~166 kg."),
+ ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~192 kg."),
 ]
 sx = 3230
 for i, (n, t, b) in enumerate(steps):
@@ -202,10 +202,10 @@ except AttributeError:
     dr.rectangle((box_x0, box_y0, box_x1, 4900), fill=TEAL_TINT)
 section((box_x0 + 24, box_y0 + 22), "OPEN DESIGN", size=28)
 wrap((box_x0 + 24, box_y0 + 70), "Nothing in nature repeats itself, so no two parts of this chair do "
-     "either: every one of the 41 segments is geometrically unique. This mass is a choice, not a "
-     "default — solid, Wolff-graded material, because thin printed shells don't glue into strong "
-     "joints. One parametric script: change the width, thickness or infill tables and it regenerates "
-     "a leaner, cheaper variant with the same joints, so no one has to own the same chair.",
+     "either: every one of the 41 segments is geometrically unique. One parametric script: change "
+     "the width, thickness or infill tables and it regenerates a leaner, cheaper variant with the "
+     "same joints — automatically re-checked against the same load case, so it can't silently "
+     "export something that fails.",
      F(25), INK, maxw=1512, sp=6)
 dr.text((box_x0 + 24, 4840), "Full source, anonymised for review:", font=F(22), fill=SUB)
 dr.text((box_x0 + 24, 4868), "anonymous.4open.science/r/manta-chair-23D4", font=F(24, True), fill=TEAL_DK)

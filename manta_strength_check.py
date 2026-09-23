@@ -13,6 +13,7 @@ the lumbar and the knee (the ribbon stays whole there). The GLUED JOINTS are
 the critical checks.
 """
 import math
+import manta_ribbon as st
 
 # ══════════ (A) REAL-WORLD INPUTS ══════════
 M_KG = 120.0     # heaviest expected user
@@ -29,35 +30,41 @@ TAU_ULT   = 27.0
 E_MPA     = 2000.0
 EPOXY_SH  = 12.0   # epoxy shear at the joint
 EPOXY_TEN = 15.0   # epoxy tension (butt joint, conservative)
-INFILL    = 0.35   # 35% — a safe weight/margin ratio (30% still works, but 2 checks drop below 1.5x)
+INFILL    = 0.35   # 35% gyroid, as printed (a slicer setting, not derived from the geometry)
 
-# ══════════ (B) GEOMETRY — from manta_ribbon.py ══════════
-SEAT_W       = 430.0   # seat width
-SEAT_TH_MID  = 46.0    # seat thickness at mid-span
-SEAT_SPAN    = 400.0   # knee -> lumbar (free seat span)
-LUMBAR_W     = 300.0   # width at the lumbar
-LUMBAR_TH    = 88.0    # thickness at the lumbar (Wolff maximum)
+# ══════════ (B) GEOMETRY — read LIVE from manta_ribbon.py's actual spine/
+# width/thickness tables, not copied by hand. This means changing W_S, TH_S
+# or the spine in manta_ribbon.py automatically changes these numbers too —
+# there's no separate "shadow" copy that can go stale.
+SEAT_W       = st.itp(st._SEATMID, st.W_S)
+SEAT_TH_MID  = st.itp(st._SEATMID, st.TH_S)
+SEAT_SPAN    = (st._LUMB - st._KNEE) * st._LEN      # knee -> lumbar (free seat span)
+LUMBAR_W     = st.itp(st._LUMB, st.W_S)
+LUMBAR_TH    = st.itp(st._LUMB, st.TH_S)            # thickness at the lumbar (Wolff maximum)
 BACK_LEVER   = 330.0   # backrest force lever above the lumbar (up to the shoulder blades)
 BACK_H_TOP   = 560.0   # backrest height above the lumbar
 
-CUT_W        = 300.0   # ribbon width at the cut nearest the lumbar
-CUT_TH       = 66.0    # thickness there (~70 mm from the lumbar)
-CUT_M_FACTOR = 0.42    # fraction of the lumbar moment present at this cut (FORBID=70 mm)
+_cuts = st.cut_stations()
+_cut_near_lumbar = min((c for c in _cuts if abs(c - st._LUMB) > 1e-6),
+                        key=lambda c: abs(c - st._LUMB))
+CUT_W        = st.itp(_cut_near_lumbar, st.W_S)     # ribbon width at the real cut nearest the lumbar
+CUT_TH       = st.itp(_cut_near_lumbar, st.TH_S)
+CUT_M_FACTOR = 0.42    # fraction of the lumbar moment present at this cut (FORBID keeps cuts away from the knot)
 
-LEG_W        = 200.0   # front-leg width
-LEG_TH       = 52.0    # front-leg thickness (weak axis)
-LEG_FREE     = 470.0   # free length of the front leg (knee -> pad)
+LEG_W        = st.itp(st._KNEE * 0.5, st.W_S)       # front-leg width, mid-span
+LEG_TH       = st.itp(st._KNEE * 0.5, st.TH_S)      # front-leg thickness (weak axis)
+LEG_FREE     = st._KNEE * st._LEN                   # free length of the front leg (foot -> knee)
 
 TAIL_W       = 155.0   # tail-brace width
 TAIL_TH      = 38.0    # min thickness at the brace's lumbar end
 TAIL_FREE    = 620.0   # free length of the brace
 
-TENON_R      = 16.0    # crosswise conical tenon (large diameter)
-TENON_TIP    = 11.0
-TENON_L      = 44.0
-LTEN_R       = 12.0    # lengthwise (L/R) tenon
-LTEN_L       = 34.0
-PIN_R        = 5.0     # dia 10 crosswise pin (legs + lumbar)
+TENON_R      = st.TEN_R      # crosswise conical tenon (large diameter)
+TENON_TIP    = st.TEN_TIP
+TENON_L      = st.TEN_L
+LTEN_R       = st.LTEN_R     # lengthwise (L/R) tenon
+LTEN_L       = st.LTEN_L
+PIN_R        = st.PIN_R      # dia 10 crosswise pin (legs + lumbar)
 
 # glued faces (full cross-section area at the cut * effective fraction after infill/flutes)
 FACE_EFF     = 0.55
@@ -76,6 +83,11 @@ COM_UP_X     = 250.0
 COM_LEAN_X   = 120.0
 CHAIR_KG     = 12.0
 CHAIR_COM_X  = 120.0
+# NOTE: BACK_LEVER/BACK_H_TOP/TAIL_*/footprint/CoM stay as representative
+# fixed estimates of the overall shape (first-order, not FEA) — they only
+# need hand-updating if you reshape the SPINE curve itself, not for a simple
+# width/thickness/infill table edit. SEAT/LUMBAR/CUT/LEG above are the ones
+# a table edit actually changes, and those are now always current.
 # ═══════════════════════════════════════════════════════
 
 k  = max(0.30, INFILL)
@@ -152,8 +164,10 @@ chk("Tail-brace: compression", Ft / A(TAIL_W, TAIL_TH), sa, "MPa")
 Pcrt = math.pi**2 * E_MPA * I(TAIL_W, TAIL_TH) / (2 * TAIL_FREE) ** 2
 chk("Tail-brace: buckling", Ft, Pcrt / SF, "N")
 
-# 11) LEG PIN — double shear
-chk("Leg pin: shear", (Fl * 0.4) / (2 * Acirc(PIN_R)), ta, "MPa")
+# 11) (there is no pin at the front-leg cut — manta_ribbon.py only places
+#      the dia 10 pin at the 2 cuts beside the lumbar (pin_j), so the front
+#      leg joint relies on the tenon + epoxy face alone; a "leg pin shear"
+#      check would be testing a part that isn't actually printed)
 
 # 12) FORK PRONG — bending from a sideways push (a person leaning sideways)
 #     one prong carries the sideways force as an angled fixed rod
@@ -164,36 +178,51 @@ chk("Fork prong: bending (sideways lean)", M_prong / Z(PRONG_W, PRONG_TH), sa, "
 F_pr = M_prong / (0.7 * PRONG_TH)
 chk("Fork joint: epoxy tension", F_pr / (0.5 * PRONG_W * PRONG_TH * FACE_EFF), etn, "MPa")
 
-# ── report ──
-print("\nMANTA — one continuous ribbon: strength check")
-print(f"person {M_KG:.0f} kg - dyn {DYN} - SF {SF} - infill {INFILL:.0%}")
-print(f"W vertical {W:.0f} N - Hb into backrest {Hb:.0f} N - Hs sideways {Hs:.0f} N\n")
-print(f"{'LOCATION':38s}{'VALUE':>9s}{'ALLOW.':>9s}{'MARGIN':>7s}  STATUS")
-worst = (9e9, "")
-for n, a, al, m, ok, u, note in rows:
-    if m < worst[0]:
-        worst = (m, n)
-    print(f"{n:38s}{a:8.1f}{u[:3]:>3s}{al:8.1f}{u[:3]:>3s}{m:6.1f}x  {'OK' if ok else 'X FAIL'}")
-
-print(f"\nWEAKEST LINK: {worst[1]}  (margin {worst[0]:.1f}x)")
-print(f"MAX safe weight (SF={SF}, dyn={DYN}): ~{M_KG * worst[0]:.0f} kg")
-
-# ── tipping ──
+# ── tipping (computed at import time too, so callers can read it without
+# re-running the printed report) ──
 mp = M_KG; cp = CHAIR_KG
 def com(px, ph):
     x = (mp * px + cp * CHAIR_COM_X) / (mp + cp)
     h = (mp * ph + cp * 300.0) / (mp + cp)
     return x, h
-xu, hu = com(COM_UP_X, COM_UP_H)
-xl, hl = com(COM_LEAN_X, COM_LEAN_H)
-print("\nTipping stability (ratio > 0.5 = good, 0.3-0.5 = OK for normal use):")
-print(f"  rearward (sitting upright): {(xu - (-FOOT_BACK_X)) / hu:.2f}")
-print(f"  rearward (leaning into the backrest): {(xl - (-FOOT_BACK_X)) / hl:.2f}")
-print(f"  forward: {(FOOT_FRONT_X - xu) / hu:.2f}")
-print(f"  sideways (splayed pad): {FOOT_HALF_Y / hu:.2f}")
+_xu, _hu = com(COM_UP_X, COM_UP_H)
+_xl, _hl = com(COM_LEAN_X, COM_LEAN_H)
+TIP_REAR_UP   = (_xu - (-FOOT_BACK_X)) / _hu
+TIP_REAR_LEAN = (_xl - (-FOOT_BACK_X)) / _hl
+TIP_FWD       = (FOOT_FRONT_X - _xu) / _hu
+TIP_SIDE      = FOOT_HALF_Y / _hu
 
-print("\nINCREASE THESE IF MARGIN < 1.5:")
-for n, a, al, m, ok, u, note in rows:
-    if m < 1.5:
-        print(f"  {n}  (margin {m:.1f}x)")
-print("\n(first-order, not FEA. Physical joint test: manta_joint_test.py.)\n")
+
+def worst_margin():
+    """(margin, name) of the weakest row — used by manta_ribbon.py to gate
+    exports. Rows are already computed above, at import time, from the LIVE
+    W_S/TH_S tables, so this always reflects the current parameters."""
+    return min(((m, n) for n, a, al, m, ok, u, note in rows), key=lambda t: t[0])
+
+
+if __name__ == "__main__":
+    # ── report ──
+    print("\nMANTA — one continuous ribbon: strength check")
+    print(f"person {M_KG:.0f} kg - dyn {DYN} - SF {SF} - infill {INFILL:.0%}")
+    print(f"W vertical {W:.0f} N - Hb into backrest {Hb:.0f} N - Hs sideways {Hs:.0f} N\n")
+    print(f"{'LOCATION':38s}{'VALUE':>9s}{'ALLOW.':>9s}{'MARGIN':>7s}  STATUS")
+    worst = (9e9, "")
+    for n, a, al, m, ok, u, note in rows:
+        if m < worst[0]:
+            worst = (m, n)
+        print(f"{n:38s}{a:8.1f}{u[:3]:>3s}{al:8.1f}{u[:3]:>3s}{m:6.1f}x  {'OK' if ok else 'X FAIL'}")
+
+    print(f"\nWEAKEST LINK: {worst[1]}  (margin {worst[0]:.1f}x)")
+    print(f"MAX safe weight (SF={SF}, dyn={DYN}): ~{M_KG * worst[0]:.0f} kg")
+
+    print("\nTipping stability (ratio > 0.5 = good, 0.3-0.5 = OK for normal use):")
+    print(f"  rearward (sitting upright): {TIP_REAR_UP:.2f}")
+    print(f"  rearward (leaning into the backrest): {TIP_REAR_LEAN:.2f}")
+    print(f"  forward: {TIP_FWD:.2f}")
+    print(f"  sideways (splayed pad): {TIP_SIDE:.2f}")
+
+    print("\nINCREASE THESE IF MARGIN < 1.5:")
+    for n, a, al, m, ok, u, note in rows:
+        if m < 1.5:
+            print(f"  {n}  (margin {m:.1f}x)")
+    print("\n(first-order, not FEA. Physical joint test: manta_joint_test.py.)\n")

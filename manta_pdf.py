@@ -43,10 +43,10 @@ _im.crop(_box).save(BANNER)
 src = open("MANTA_Description_DRAFT.md", encoding="utf-8").read()
 styles = getSampleStyleSheet()
 H1 = ParagraphStyle("H1", parent=styles["Title"], fontSize=20, spaceAfter=3, spaceBefore=0)
-H2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=11.4, spaceBefore=9, spaceAfter=3.4,
+H2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=11.2, spaceBefore=8, spaceAfter=3.0,
                     textColor=TEAL_DK)
-BODY = ParagraphStyle("BODY", parent=styles["BodyText"], fontSize=9.3, leading=12.4,
-                      alignment=TA_JUSTIFY, spaceAfter=3.4, textColor=INK)
+BODY = ParagraphStyle("BODY", parent=styles["BodyText"], fontSize=9.15, leading=12.0,
+                      alignment=TA_JUSTIFY, spaceAfter=3.0, textColor=INK)
 BUL = ParagraphStyle("BUL", parent=BODY, leftIndent=16, firstLineIndent=-10, spaceAfter=1.6)
 STAT_BIG = ParagraphStyle("STAT_BIG", fontName="Helvetica-Bold", fontSize=17,
                           textColor=TEAL_DK, alignment=TA_CENTER, leading=19)
@@ -62,7 +62,7 @@ def section_header(title):
     return Paragraph(f'<font color="#0a828a">■</font>&nbsp;&nbsp;{title.upper()}', H2)
 
 def stat_strip():
-    stats = [("166 kg", "safe static load"), ("15×", "joint margin, epoxied"),
+    stats = [("192 kg", "safe static load"), ("4.8×", "weakest epoxied joint"),
              ("~16 kg", "finished weight"), ("~90 €", "filament cost")]
     cells = [[Paragraph(big, STAT_BIG)] for big, _ in stats]
     lbls = [[Paragraph(lbl, STAT_LBL)] for _, lbl in stats]

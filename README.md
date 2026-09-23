@@ -92,6 +92,16 @@ Everything is set in the `PARAMETERS` block at the top of `manta_ribbon.py`:
 After printing the joint test, note which clearance (`0.08 / 0.12 / 0.16`)
 holds best — set it as `TEN_CLR` and regenerate the final STLs.
 
+**Every run of `manta_ribbon.py` re-checks itself.** Before exporting
+anything, it calls `manta_strength_check.py`'s `worst_margin()`, which
+re-derives the seat/lumbar/cut/leg section properties live from whatever
+`W_S`/`TH_S` are currently set to (not a hand-copied snapshot) and runs the
+same load case as the printed report. If tuning the tables has pushed the
+weakest joint below the intended safety factor, generation stops with an
+error instead of quietly writing an unsafe STL. Run
+`python manta_strength_check.py` on its own any time for the full
+13-check breakdown.
+
 ---
 
 ## How the joint holds (so you don't have to worry)
@@ -101,12 +111,13 @@ The joint is **not "just a pin."** In order of importance:
 1. **The full solid cross-section, glued face-to-face.** Every cut is
    perpendicular to the ribbon's axis, so you're gluing two flat faces of
    solid material against each other — 6,600–17,000 mm² of epoxy per joint.
-   This is the main strength. (Margin in the strength check: **15x**.)
+   This is the main strength. (Margin in the strength check: **~27x**, at
+   the weakest epoxied joint **~4.8x** — see `manta_strength_check.py`.)
 2. **A conical tenon (dia 32)** at the centre of the cut — self-centring,
    and it carries the tension side so the joint can't "open up."
 3. **A dia 10 pin** — ONLY at the 2 joints beside the lumbar. It's a
    **backup**, not the main joint. Even if the epoxy failed completely, the
-   tenon + pin alone still give a **2.2x margin** there.
+   tenon + pin alone still give a **1.6x margin** there (hand-break tested).
 
 Epoxy on PETG: **sand the face (P120) and degrease** before gluing — otherwise
 the epoxy won't bond well. Leave it clamped to cure for 24 h.

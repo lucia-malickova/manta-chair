@@ -587,6 +587,23 @@ def main():
         if f.endswith((".stl", ".brep")):
             os.remove(os.path.join(OUT, f))
 
+    # ── automatic safety gate — re-derives the load-path margins LIVE from
+    # the current W_S/TH_S tables (manta_strength_check.py imports this same
+    # module, so it always sees the parameters actually in effect, never a
+    # stale hand-copied number). If tuning the tables has pushed the weakest
+    # joint below the intended safety factor, stop here — before anything is
+    # exported — instead of silently handing back an unsafe STL.
+    import manta_strength_check as _sc
+    _margin, _where = _sc.worst_margin()
+    print(f"\nstrength check — weakest: {_where}  ({_margin:.2f}x)   "
+          f"[full report: python manta_strength_check.py]")
+    if _margin < 1.0:
+        raise SystemExit(
+            f"\n!! REFUSING TO EXPORT: '{_where}' is at {_margin:.2f}x, "
+            f"below the intended safety factor (SF={_sc.SF} already applied "
+            f"in the allowable). Increase the width/thickness table near "
+            f"this location (or reduce INFILL's assumption) and try again.\n")
+
     items, pins, cuts, pin_j = build()
     nseg = len(cuts) - 1
 
@@ -619,10 +636,11 @@ def main():
         trailing = seg_k < nseg - 1
         label_c = (seg_k + 1) if trailing else seg_k
         label_s = cuts[label_c]
+        part_num = len(legend) + 1     # same 1..42 sequence as the board key / template cells
         # skip the 2 pin joints — the label offset doesn't account for the
         # pin hole there, avoid risking an overlap
         lbl = None if label_c in pin_j else _label_solid(
-            label_s, seg_sd, nm.replace("SEG_", ""), trailing)
+            label_s, seg_sd, str(part_num), trailing)
         if lbl is not None:
             try:
                 sol = big(sol.fuse(lbl))
