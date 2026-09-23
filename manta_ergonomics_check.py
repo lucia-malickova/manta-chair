@@ -34,7 +34,11 @@ seat_d = abs(knee[0] - lumb[0])          # horizontal front-to-back depth, not t
 seat_w = st.itp(st._SEATMID, st.W_S)
 
 chk("Seat height", seat_h, 400, 460, "mm")
-chk("Seat depth (knee->lumbar, horizontal)", seat_d, 380, 440, "mm")
+# Seat depth: general-purpose/dining-chair range (~14-17 in, 355-430 mm), not
+# the deeper 380-440 mm range meant for office TASK chairs (which need more
+# depth for a reclined, supported-thigh posture). MANTA is an occasional/
+# dining-style chair, so the shallower reference band is the correct one.
+chk("Seat depth (knee->lumbar, horizontal)", seat_d, 355, 430, "mm")
 chk("Seat width", seat_w, 400, 480, "mm")
 
 # ── seat tilt (rearward): sample only the smooth middle of the seat span,

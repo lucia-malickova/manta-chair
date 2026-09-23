@@ -33,8 +33,8 @@ load-bearing:
 ## Printing
 
 41 segments, each within 212 × 220 × 250 mm, printable **without supports**
-(8 print upright) — every gram becomes chair, none is scrapped as support
-waste for an ocean that has enough plastic in it already. PETG, 0.2 mm
+(8 print upright) — every gram becomes chair, none scrapped as support
+waste for an already plastic-choked ocean. PETG, 0.2 mm
 layers, 5 perimeters, 35 % gyroid — kept low, thickness already carries the
 load. Finished weight ~16 kg, ~180 h batch print time, ~90 € in filament.
 
@@ -53,7 +53,8 @@ the width/thickness tables: every member passes, weakest link 1.6×
 without glue (confirmed by hand-breaking a printed coupon that held on the
 pin alone), 4.8× at the weakest epoxied joint. Tipping 0.56 sideways,
 0.55–0.77 rearward, safe static load ~190 kg. Seat 429 × 364 mm, 455 mm
-high, 3° rearward tilt, convex lumbar.
+high, 3° rearward tilt, convex lumbar — 8/8 ergonomics checks pass,
+live-verified by script.
 
 ## Open design — nothing repeats
 
@@ -61,5 +62,5 @@ Nothing in nature repeats, so no two parts of this chair do either: all 41
 segments are geometrically unique (only the small locking pin repeats). One
 parametric script: change the tables and it regenerates a leaner variant
 with the same joints — automatically re-checked against the same load
-case, so it can't silently export a variant that fails. Full source,
+case, so it can't silently export a variant that fails. Source,
 anonymised for review: anonymous.4open.science/r/manta-chair-23D4
