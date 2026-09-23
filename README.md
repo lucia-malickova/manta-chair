@@ -38,15 +38,17 @@ renders / board / poster / PDF.
 |---|---|---|---|
 | 1 | `python manta_ribbon.py` | **generator** — builds the ribbon, **slices it**, adds tenons + pins, exports the parts and the assembled chair | `MANTA_RIBBON/` |
 | 2 | `python manta_apply_template.py` | embeds the chair + numbered parts into the **official, unmodified** `3D_Template.stl` (chair centred in its 800x800mm footprint box, each part in its numbered 220x220x250mm cell) | overwrites `MANTA_RIBBON/MANTA_Chair.stl` + `MANTA_Assembly.stl` |
-| 3 | `python manta_strength_check.py` | **strength + stability check** (first-order, pure math) | printed to the console |
-| 4 | `python manta_joint_test.py` | **physical joint test** — small pieces to print and glue | `MANTA_TEST/` |
+| 3 | `python manta_strength_check.py` | **strength + stability check** (first-order, pure math, live from the tables — also run automatically by step 1) | printed to the console |
+| 4 | `python manta_ergonomics_check.py` | **ergonomics check** — 8 seat/backrest dimensions vs seating reference ranges | printed to the console |
+| 5 | `python manta_uniqueness_check.py` | **uniqueness check** — proves no two segments share volume/area/bbox | printed to the console |
+| 6 | `python manta_joint_test.py` | **physical joint test** — small pieces to print and glue | `MANTA_TEST/` |
 | — | *renders and submission files:* | | |
-| 5 | `python manta_render.py` | renders (poster + board views) | `_deliver/` |
-| 6 | `python manta_explode.py` | exploded view + parts grid | `_deliver/` |
-| 7 | `python manta_pdf.py` | description -> PDF | `TEAMID_Description.pdf` |
-| 8 | `python manta_poster.py` | A2 poster | `TEAMID_Poster.jpg` |
-| 9 | `python manta_board.py` | A2 board (on the official template) | `TEAMID_Board.jpg` |
-| 10 | `python manta_package.py` | packs the submission files + checks total size | `ODOVZDANIE/` |
+| 7 | `python manta_render.py` | renders (poster + board views) | `_deliver/` |
+| 8 | `python manta_explode.py` | exploded view + parts grid | `_deliver/` |
+| 9 | `python manta_pdf.py` | description -> PDF | `TEAMID_Description.pdf` |
+| 10 | `python manta_poster.py` | A2 poster | `TEAMID_Poster.jpg` |
+| 11 | `python manta_board.py` | A2 board (on the official template) | `TEAMID_Board.jpg` |
+| 12 | `python manta_package.py` | packs the submission files + checks total size | `ODOVZDANIE/` |
 
 **Part numbering**: the official `3D_Template.stl` numbers its 49 cells
 column-major (1,8,15,22,29,36,43 down column 1; 2,9,16,... down column 2;
@@ -130,6 +132,7 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `manta_apply_template.py` — embeds the chair/parts into the official `3D_Template.stl`
 - `manta_strength_check.py` — strength + stability
 - `manta_ergonomics_check.py` — seat/backrest dimensions vs standard reference ranges
+- `manta_uniqueness_check.py` — proves no two of the 41 segments are geometrically identical
 - `manta_joint_test.py` — physical joint test
 - `manta_material.py` — filament use + cost from the real STL parts
 - the remaining `manta_*.py` files = rendering / submission packaging

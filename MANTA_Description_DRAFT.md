@@ -59,7 +59,7 @@ live-verified by script.
 ## Open design — nothing repeats
 
 Nothing in nature repeats, so no two parts of this chair do either: all 41
-segments are geometrically unique (only the small locking pin repeats). One
+segments are geometrically unique (script-verified, no duplicates). One
 parametric script: change the tables and it regenerates a leaner variant
 with the same joints — automatically re-checked against the same load
 case, so it can't silently export a variant that fails. Source,

@@ -203,10 +203,10 @@ except AttributeError:
     dr.rectangle((box_x0, box_y0, box_x1, 4900), fill=TEAL_TINT)
 section((box_x0 + 24, box_y0 + 22), "OPEN DESIGN", size=28)
 wrap((box_x0 + 24, box_y0 + 70), "Nothing in nature repeats itself, so no two parts of this chair do "
-     "either: every one of the 41 segments is geometrically unique. One parametric script: change "
-     "the width, thickness or infill tables and it regenerates a leaner, cheaper variant with the "
-     "same joints — automatically re-checked against the same load case, so it can't silently "
-     "export something that fails.",
+     "either: every one of the 41 segments is geometrically unique — script-verified, no two share "
+     "volume, area or bounding box. One parametric script: change the width, thickness or infill "
+     "tables and it regenerates a leaner, cheaper variant with the same joints — automatically "
+     "re-checked against the same load case, so it can't silently export something that fails.",
      F(25), INK, maxw=1512, sp=6)
 dr.text((box_x0 + 24, 4840), "Full source, anonymised for review:", font=F(22), fill=SUB)
 dr.text((box_x0 + 24, 4868), "anonymous.4open.science/r/manta-chair-23D4", font=F(24, True), fill=TEAL_DK)
