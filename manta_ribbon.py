@@ -545,16 +545,34 @@ def build():
         for sda, ap in list(A.items()):
             if ap is None:
                 continue
-            yc = ap.Center().y
+            yc = ap.Center().y     # whole-segment centroid -- only used to pick
+                                    # the matching B half below, NOT to place the
+                                    # tenon (see yc_cut).
             kb = min((kk for kk, bb in B.items() if bb is not None),
                      key=lambda kk: abs(B[kk].Center().y - yc), default=None)
             if kb is None:
                 continue
-            cc = Ce + np.array([0.0, yc, 0.0])          # tenon centre (in the cut plane)
+            # tenon/socket Y-position: the CUT FACE's own centre (from the exact
+            # profile at this station), not the whole segment's volumetric
+            # centroid. A segment that tapers a lot along its length (a fork /
+            # foot zone) can have its overall centroid sit far from where the
+            # cut face itself actually is -- confirmed on SEG_21R/SEG_20R etc,
+            # where the old whole-segment `yc` put the tenon within ~13mm of
+            # the cut face's edge while the tenon itself needed ~15mm radius,
+            # so the cone punched straight through the outer wall.
+            bb_cut = wire_at(cuts[c], sda).BoundingBox()
+            y_lo, y_hi = bb_cut.ymin, bb_cut.ymax
+            yc_cut = 0.5 * (y_lo + y_hi)
+            cc = Ce + np.array([0.0, yc_cut, 0.0])      # tenon centre (in the cut plane)
             base = cc - ne * (TEN_L * 0.5)              # tenon base: half its length into A
-            # scale the tenon diameter to the local section thickness (~38%, min wall)
+            # scale the tenon diameter to the local section thickness (~38%, min
+            # wall), THEN clamp it to what this specific cut face's own width
+            # actually has room for (with a 3mm safety margin either side) --
+            # never let the requested radius exceed the real available material.
             th_loc = itp(cuts[c], TH_S)
             tr = min(TEN_R, max(7.0, 0.38 * th_loc))
+            avail = min(yc_cut - y_lo, y_hi - yc_cut) - 3.0
+            tr = min(tr, max(5.0, avail))
             tt = tr * (TEN_TIP / TEN_R)
             try:
                 A[sda] = big(ap.fuse(cone(tr, tt, TEN_L, base, ne)))
