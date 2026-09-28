@@ -189,7 +189,7 @@ dr.line((M, 2540, W-M, 2540), fill=TEAL, width=5)
 # ============ ASSEMBLY GUIDE ============  (template's 49-key grid: x~118..708 y~2008..2570)
 section((820, 2585), "ASSEMBLY GUIDE")
 img("b_exploded.png", (150, 2690, 3050, 4760))
-wrap((170, 4770), "Exploded — 41 printed segments, no two alike. The ribbon is one solid form; it is only cut to fit the bed.",
+wrap((170, 4770), "Exploded — 41 segments, no two alike. Cuts and pegs are computed: cuts stay clear of the peak-load knee and lumbar, pegs follow the section, every joint verified by virtual assembly.",
      F(28), SUB, maxw=2800)
 
 steps = [

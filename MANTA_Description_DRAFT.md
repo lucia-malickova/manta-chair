@@ -10,13 +10,11 @@ frame, no visible assembly. The name is literal: forked feet read as fins,
 the tail-brace as a fluke. The ocean makes most of the oxygen we breathe,
 and the manta ray is one of its health indicators — so the surface carries
 the story too: flutes that follow the ribbon's own motion, bold at the
-floor and easing toward the crown, capped near the seat and back so they
-stay tactile without ever pressing into a bone.
+floor and easing toward the crown, capped where you sit so they never press into a bone.
 
 ## Biomimicry as structure, not ornament
 
-Every centimetre of the section is set by a biological rule, and each is
-load-bearing:
+Each rule sets the section, and each carries load:
 
 - **Wolff's law** — thickness follows the bending moment: 84 mm at the lumbar
   knot, 50 mm at the knee, a 32 mm blade at the crown.
@@ -35,31 +33,30 @@ load-bearing:
 41 segments, each within 212 × 220 × 250 mm and pre-oriented on its own
 cut face to print **without supports** — every gram becomes chair, none
 scrapped as support waste. PETG, 0.2 mm layers, 5 perimeters, 35 % gyroid,
-solid pins. Finished weight ~16 kg, ~180 h batch print time, ~90 € in filament.
+solid pins. ~16 kg, ~180 h of printing, ~90 € of filament.
 
-## Assembly — screw-free
+## Assembly — computed joints, no screws
 
-The ribbon is sliced **crosswise**, so every joint is a full solid
-cross-section (7,000–17,000 mm²), never a thin plate edge: a self-centring
-conical peg (Ø27) plus epoxy. Wide segments also split along the
-centre-line, seam hidden in a flute, reading as a keel. The two joints
-beside the lumbar get an added solid Ø11 pin. No screws, no brackets.
-Every peg is checked by virtual assembly to seat in its neighbour.
+Cuts and joints are computed, not drawn by hand. The script slices the
+ribbon **crosswise** by length and curvature, keeping every cut ≥ 70 mm from
+the knee and lumbar where bending peaks, so those knots sit whole,
+mid-segment. Every joint is a full solid cross-section (7,000–17,000 mm²),
+epoxied, with a self-centring conical peg sized to the local thickness,
+centred on its face, shrunk until its socket keeps a 2 mm wall.
+Wide segments split along a flute-hidden keel. Only the two most-loaded
+joints, beside the lumbar, add a solid Ø11 pin. A virtual assembly verifies
+every peg seats in its neighbour.
 
 ## Stability and load
 
-First-order check (120 kg × 1.8 dynamic × 2.0 safety), live from the
-width/thickness tables: every member passes; glued full-section joint 26×,
+First-order check (120 kg × 1.8 dynamic × 2.0 safety): every member passes; glued full-section joint 26×,
 weakest glued check 2.1×; with no glue at all, peg and pin still carry
 0.9×. Tipping 0.56 sideways, 0.55–0.77 rearward; safe static load
-~250 kg. Seat 429 × 364 mm, 428 mm high, 5° tilt, convex lumbar — 8/8
-ergonomics checks pass, verified by script.
+~250 kg. Seat 429 × 364 mm, 428 mm high; 8/8 ergonomics checks pass.
 
 ## Open design — nothing repeats
 
 Nothing in nature repeats, so no two parts of this chair do either: all 41
-segments are geometrically unique (script-verified, no duplicates). One
-parametric script: change the tables and it regenerates a leaner variant
-with the same joints, auto-checked against the same load case. A ready
-90 kg, 40% lighter variant is included. Source, anonymised for review:
-anonymous.4open.science/r/manta-chair-23D4
+segments are geometrically unique (script-verified, no duplicates). Change
+the tables and the same script regenerates a leaner chair, joints and
+load checks included; a 90 kg, 40 % lighter variant is in the repo (anonymised source link below).
