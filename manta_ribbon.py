@@ -552,26 +552,40 @@ def build():
                      key=lambda kk: abs(B[kk].Center().y - yc), default=None)
             if kb is None:
                 continue
-            # tenon/socket Y-position: the CUT FACE's own centre (from the exact
-            # profile at this station), not the whole segment's volumetric
-            # centroid. A segment that tapers a lot along its length (a fork /
-            # foot zone) can have its overall centroid sit far from where the
-            # cut face itself actually is -- confirmed on SEG_21R/SEG_20R etc,
-            # where the old whole-segment `yc` put the tenon within ~13mm of
-            # the cut face's edge while the tenon itself needed ~15mm radius,
-            # so the cone punched straight through the outer wall.
-            bb_cut = wire_at(cuts[c], sda).BoundingBox()
-            y_lo, y_hi = bb_cut.ymin, bb_cut.ymax
-            yc_cut = 0.5 * (y_lo + y_hi)
-            cc = Ce + np.array([0.0, yc_cut, 0.0])      # tenon centre (in the cut plane)
-            base = cc - ne * (TEN_L * 0.5)              # tenon base: half its length into A
-            # scale the tenon diameter to the local section thickness (~38%, min
-            # wall), THEN clamp it to what this specific cut face's own width
-            # actually has room for (with a 3mm safety margin either side) --
-            # never let the requested radius exceed the real available material.
+            # tenon/socket position: the TRUE 3D centroid of the cut face's own
+            # profile at this exact station/side (wire_at), not a global-Y
+            # offset. A global-Y offset silently assumes "sideways" always
+            # means the global Y axis, which breaks wherever the section has
+            # twisted (TWIST_S) away from its untwisted starting orientation
+            # -- confirmed visually on SEG_11L etc (near-lumbar, twisted
+            # zone): the old Y-bbox-based centre landed entirely outside the
+            # actual cross-section, in empty space below it, not just close
+            # to an edge. Using the profile's own 3D point cloud sidesteps
+            # any assumption about which global axis "sideways" is.
+            cut_pts = np.array([v.toTuple() for v in wire_at(cuts[c], sda).Vertices()])
+            cc = cut_pts.mean(axis=0)                   # true centroid, in 3D
+            base = cc - ne * (TEN_L * 0.5)               # tenon base: half its length into A
+            # scale the tenon diameter to the local section thickness (~38%,
+            # min wall), THEN clamp it to what THIS cut face actually has
+            # room for: project its own points into the 2D plane
+            # perpendicular to `ne` and measure the true min distance from
+            # cc to the polygon boundary (not an axis-aligned bounding box,
+            # which over/understates the margin whenever the polygon isn't
+            # axis-aligned) -- never let the tenon exceed real material.
             th_loc = itp(cuts[c], TH_S)
             tr = min(TEN_R, max(7.0, 0.38 * th_loc))
-            avail = min(yc_cut - y_lo, y_hi - yc_cut) - 3.0
+            _tmp = np.array([0.0, 0.0, 1.0]) if abs(ne[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
+            _uu = np.cross(ne, _tmp); _uu /= (np.linalg.norm(_uu) + 1e-9)
+            _vv = np.cross(ne, _uu)
+            _rel = cut_pts - cc
+            _pu, _pv = _rel @ _uu, _rel @ _vv
+            try:
+                from shapely.geometry import Polygon, Point
+                _poly = Polygon(np.column_stack([_pu, _pv])).buffer(0)
+                _d = _poly.exterior.distance(Point(0.0, 0.0))
+                avail = (_d if _poly.contains(Point(0.0, 0.0)) else -_d) - 3.0
+            except Exception:
+                avail = np.hypot(_pu, _pv).min() - 3.0   # fallback: nearest-vertex distance
             tr = min(tr, max(5.0, avail))
             tt = tr * (TEN_TIP / TEN_R)
             try:
