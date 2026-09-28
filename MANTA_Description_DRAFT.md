@@ -32,35 +32,34 @@ load-bearing:
 
 ## Printing
 
-41 segments, each within 212 × 220 × 250 mm, printable **without supports**
-(8 print upright) — every gram becomes chair, none scrapped as support
-waste for an already plastic-choked ocean. PETG, 0.2 mm
-layers, 5 perimeters, 35 % gyroid — kept low, thickness already carries the
-load. Finished weight ~16 kg, ~180 h batch print time, ~90 € in filament.
+41 segments, each within 212 × 220 × 250 mm and pre-oriented on its own
+cut face to print **without supports** — every gram becomes chair, none
+scrapped as support waste. PETG, 0.2 mm layers, 5 perimeters, 35 % gyroid,
+solid pins. Finished weight ~16 kg, ~180 h batch print time, ~90 € in filament.
 
 ## Assembly — screw-free
 
 The ribbon is sliced **crosswise**, so every joint is a full solid
 cross-section (7,000–17,000 mm²), never a thin plate edge: a self-centring
-conical tenon (Ø32) plus epoxy. Wide segments also split along the
+conical peg (Ø27) plus epoxy. Wide segments also split along the
 centre-line, seam hidden in a flute, reading as a keel. The two joints
-beside the lumbar get an added Ø10 pin. No screws, no brackets.
+beside the lumbar get an added solid Ø11 pin. No screws, no brackets.
+Every peg is checked by virtual assembly to seat in its neighbour.
 
 ## Stability and load
 
-First-order check (120 kg × 1.8 dynamic × 2.0 safety) re-derived live from
-the width/thickness tables: every member passes, weakest link 1.6×
-without glue (confirmed by hand-breaking a printed coupon that held on the
-pin alone), 4.8× at the weakest epoxied joint. Tipping 0.56 sideways,
-0.55–0.77 rearward, safe static load ~190 kg. Seat 429 × 364 mm, 455 mm
-high, 3° rearward tilt, convex lumbar — 8/8 ergonomics checks pass,
-live-verified by script.
+First-order check (120 kg × 1.8 dynamic × 2.0 safety), live from the
+width/thickness tables: every member passes; glued full-section joint 26×,
+weakest glued check 2.1×; with no glue at all, peg and pin still carry
+0.9×. Tipping 0.56 sideways, 0.55–0.77 rearward; safe static load
+~250 kg. Seat 429 × 364 mm, 428 mm high, 5° tilt, convex lumbar — 8/8
+ergonomics checks pass, verified by script.
 
 ## Open design — nothing repeats
 
 Nothing in nature repeats, so no two parts of this chair do either: all 41
 segments are geometrically unique (script-verified, no duplicates). One
 parametric script: change the tables and it regenerates a leaner variant
-with the same joints — automatically re-checked against the same load
-case, so it can't silently export a variant that fails. Source,
-anonymised for review: anonymous.4open.science/r/manta-chair-23D4
+with the same joints, auto-checked against the same load case. A ready
+90 kg, 40% lighter variant is included. Source, anonymised for review:
+anonymous.4open.science/r/manta-chair-23D4

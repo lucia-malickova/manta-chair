@@ -1,10 +1,10 @@
 MANTA — numbered, pre-oriented printable parts (matches Board key)
 
-Each file is pre-rotated to its own best support-free print orientation
-(python manta_orient.py) — import and print as-is, no manual rotation.
-Each part rests on its own real cut/joint face (matched to the exact
-joint geometry, not just any flat surface); all 42 parts land on a solid
-bed-contact footprint (>=400 mm2), none need a brim for adhesion.
+Each file is pre-rotated onto its own real cut/joint face (python manta_orient.py)
+— import and print as-is. All 42 parts land on a solid bed footprint (>=400 mm2).
+Every peg is checked by virtual assembly to seat in its neighbour's socket
+(python manta_joint_check.py). PIN: print SOLID (100 % infill) — its strength counts.
+Always print both halves (L + R) of a segment from the SAME version of the files.
 
 BOARD LEGEND  (42 items, limit 49)
  1. SEG_00L      1x
@@ -48,8 +48,8 @@ BOARD LEGEND  (42 items, limit 49)
 39. SEG_21R      1x
 40. SEG_22L      1x
 41. SEG_22R      1x
-42. PIN          4x
+42. PIN          4x   <- print at 100 % infill (solid)
 
-crosswise joint (baguette-cut): conical tenon dia 32 + two-part epoxy
-lengthwise joint (L/R seam): transverse tenon dia 24 + epoxy
-PIN dia 10: 4x, one on each side of the lumbar (the most loaded joint)
+crosswise joint (baguette-cut): conical peg dia 27 at the face, 22 mm into the neighbour's socket, + two-part epoxy on the whole face
+lengthwise joint (L/R seam): transverse peg up to dia 20 + epoxy
+PIN dia 11: 4x, printed SOLID (100% infill), one on each side of the lumbar (the most loaded joint)

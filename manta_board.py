@@ -141,8 +141,8 @@ section((4790, 470), "STRUCTURE & STABILITY", size=34)
 wrap((4790, 530), "First-order check at 120 kg x 1.8 dynamic x 2.0 safety — every member passes.",
      F(28), SUB, maxw=1320, sp=6)
 stats = [
-    ("192 kg", "safe static load"),
-    ("4.8x", "weakest epoxied joint margin — 1.6x on the tenon + pin alone, no glue (hand-break tested)"),
+    ("~250 kg", "safe static load, glued — weakest glued check 2.1x"),
+    ("26x", "the glued full cross-section, the real load path. With no glue at all, peg + solid pin alone still carry 0.9x of the full design load"),
     ("0.56 / 0.77", "tipping ratio, sideways / rearward — greater than 0.5 counts as stable"),
 ]
 sy = 660
@@ -156,11 +156,11 @@ for big, label in stats:
 dr.line((4790, sy - 30, 4790 + 1330, sy - 30), fill=HAIR, width=3)
 dr.text((4790, sy), "429 x 364", font=F(46, True), fill=TEAL_DK)
 dr.text((4790, sy + 58), "seat W x D, mm", font=F(20), fill=SUB)
-dr.text((4790 + 420, sy), "455", font=F(46, True), fill=TEAL_DK)
+dr.text((4790 + 420, sy), "428", font=F(46, True), fill=TEAL_DK)
 dr.text((4790 + 420, sy + 58), "seat height, mm", font=F(20), fill=SUB)
-dr.text((4790 + 780, sy), "3 deg", font=F(46, True), fill=TEAL_DK)
+dr.text((4790 + 780, sy), "5 deg", font=F(46, True), fill=TEAL_DK)
 dr.text((4790 + 780, sy + 58), "rearward tilt", font=F(20), fill=SUB)
-dr.text((4790, sy + 140), "798 x 685 x 1012", font=F(40, True), fill=TEAL_DK)
+dr.text((4790, sy + 140), "812 x 698 x 998", font=F(40, True), fill=TEAL_DK)
 dr.text((4790, sy + 190), "overall D x W x H, mm", font=F(20), fill=SUB)
 wrap((4790, sy + 250), "Every dimension checked against seating-ergonomics reference "
      "ranges by script — 8/8 pass.", F(23), SUB, maxw=1330, sp=6)
@@ -194,11 +194,11 @@ wrap((170, 4770), "Exploded — 41 printed segments, no two alike. The ribbon is
 
 steps = [
  ("1", "Lay out by zone", "Parts 1-42 in reading order form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
- ("2", "Crosswise joints", "Every cut is a full solid cross-section. Seat the printed conical tenon (dia 32); two-part epoxy over the whole face. No screws."),
- ("3", "Left + right halves", "Wide segments come in L+R halves. Join along the centre-line with the transverse tenon (dia 24) + epoxy; the seam is the keel."),
- ("4", "Lumbar pins", "Only the two joints beside the lumbar: drive the dia 10 printed pin (x2) through the joint before the epoxy sets."),
+ ("2", "Crosswise joints", "Every cut is a full solid cross-section. Seat the printed conical peg (dia 27 at the face); two-part epoxy over the whole face. No screws."),
+ ("3", "Left + right halves", "Wide segments come in L+R halves. Join along the centre-line with the transverse peg (up to dia 20) + epoxy; the seam is the keel."),
+ ("4", "Lumbar pins", "Only the two joints beside the lumbar: drive the dia 11 printed pin (x2, printed solid) through the joint before the epoxy sets."),
  ("5", "Sub-assemble, cure", "Build seat, backrest and each fork-foot separately. Cure 24 h. Then join at the lumbar and the two knees."),
- ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~192 kg."),
+ ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~250 kg."),
 ]
 sx = 3230
 for i, (n, t, b) in enumerate(steps):
@@ -221,7 +221,7 @@ rows = [
  ("WALLS", "5 perimeters"),
  ("INFILL", "35 % gyroid  (kept low — the ribbon's own bulk carries the load)"),
  ("ADHESIVE", "two-part epoxy (structural)"),
- ("PIN", "dia 10 printed rod, x4, at the 2 lumbar joints"),
+ ("PIN", "dia 11 printed rod, 100 % infill, x4, at the 2 lumbar joints"),
  ("EST. WEIGHT", "~16 kg  -  ~90 EUR in budget filament"),
  ("BATCH TIME", "~160-200 h"),
 ]

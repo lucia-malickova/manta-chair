@@ -107,8 +107,10 @@ SE_N    = 3.0        # superellipse exponent (rounded, stiff edges)
 # spiral fibre — the section twists around the flow axis (Zaha-style sweep +
 # biomimicry). (fraction of length, angle in degrees). Near 0 in the seat
 # (so it stays sittable).
-TWIST_S = [(0.00,0),(0.13,-12),(0.24,0),(0.34,0),(0.45,9),(0.60,20),
-           (0.70,26),(0.80,16),(0.92,-8),(1.00,-16)]
+# the twist eases off through the crown scroll (s~0.55-0.61, bend radius ~30 mm):
+# twisting a 310 mm wide ribbon there folds its inner edge over itself
+TWIST_S = [(0.00,0),(0.13,-12),(0.24,0),(0.34,0),(0.45,9),(0.51,12),(0.575,3),
+           (0.645,21),(0.70,26),(0.80,16),(0.92,-8),(1.00,-16)]
 
 SEAT_DISH_LAT = 12.0   # transverse seat dish (mm, at bottom centre)
 LUMBAR_BUMP   = 18.0   # convex lumbar support toward the body (typical support range 15-25mm)
@@ -134,7 +136,12 @@ PRONG_TH_END   = 44.0  # thickness of the prong's flat pad
 TEN_R, TEN_TIP, TEN_L = 16.0, 11.0, 44.0    # crosswise conical tenon
 LTEN_R, LTEN_TIP, LTEN_L = 12.0, 8.0, 34.0  # lengthwise tenon (L/R)
 TEN_CLR = 0.12
-PIN_R, PIN_CLR = 5.0, 0.15                   # dia 10 crosswise pin (legs + lumbar)
+TEN_ROOT = 3.0        # mm of each peg fused into its own part (only the rest protrudes)
+SOCK_EXTRA = 0.6      # socket this much deeper than the peg: the glue faces meet, not the tip
+JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM = [], [], []
+PIN_R, PIN_CLR = 5.5, 0.15                   # dia 11 crosswise pin, printed SOLID (100% infill)
+PIN_POS = 0.35        # pin centre at this fraction of the peg length past the cut: close to
+                      # the face so enough peg is left beyond it to not tear out
 
 BED = (212.0, 220.0, 250.0)
 MESH_TOL, MESH_ANG = 0.14, 0.35     # MANTA_Chair.stl (submission + render)
@@ -315,6 +322,36 @@ def _depth_frac(s):
     return max(0.0, min(1.0, (z - _ZLO) / (_ZHI - _ZLO + 1e-9)))
 
 
+_TWCAP = {"key": None, "d": None, "cap": None}
+
+
+def _twist_cap(s):
+    """Largest twist (radians) the section may have at s without its inner
+    edge folding over itself on a tight curl. Twist tips one half of the
+    width toward the inside of the bend; at the crown the spine turns with a
+    ~30 mm radius, and 20 deg of twist on a 155 mm half-width pushed that edge
+    ~50 mm inward -- past the centre of the bend -- so consecutive segments
+    overlapped by several cm3 and could not be assembled. Rule: the inner
+    edge (half-width * sin(twist) + half-thickness) stays within 80% of the
+    local bend radius. Smoothed along the ribbon so the twist eases in and
+    out instead of snapping."""
+    key = (round(_LEN, 3), id(TWIST_S), id(W_S), id(TH_S))
+    if _TWCAP["key"] != key:
+        from scipy.ndimage import minimum_filter1d, gaussian_filter1d
+        d = np.linspace(0.0, 1.0, 1201)
+        tg = np.array([tangent(x) for x in d])
+        ang = np.r_[np.arccos(np.clip((tg[1:] * tg[:-1]).sum(1), -1.0, 1.0)), 0.0]
+        ang = np.maximum(ang, np.r_[0.0, ang[:-1]])
+        R = (d[1] - d[0]) * _LEN / np.maximum(ang, 1e-9)
+        a = np.array([itp(x, W_S) * 0.5 for x in d])
+        b = np.array([itp(x, TH_S) * 0.5 for x in d])
+        cap = np.arcsin(np.clip((0.8 * R - b) / a, 0.0, 1.0))
+        cap = minimum_filter1d(cap, size=141)         # hold it low +-0.06 of the length
+        cap = gaussian_filter1d(cap, sigma=40)        # ...and ease in/out over ~0.1
+        _TWCAP.update(key=key, d=d, cap=cap)
+    return float(np.interp(s, _TWCAP["d"], _TWCAP["cap"]))
+
+
 def _frame(s):
     C = Vector(*center(s))
     T = Vector(*tangent(s))
@@ -322,6 +359,9 @@ def _frame(s):
     tdir = T.cross(wdir)
     tdir = tdir.normalized() if tdir.Length > 1e-6 else Vector(0, 0, 1)
     tw = math.radians(itp(s, TWIST_S))          # spiral fibre
+    cap = _twist_cap(s)                          # ...but never so much that the
+    if abs(tw) > cap:                            # inner edge folds over a tight curl
+        tw = math.copysign(cap, tw)
     if abs(tw) > 1e-4:
         cs, sn = math.cos(tw), math.sin(tw)
         wdir, tdir = wdir * cs + tdir * sn, tdir * cs - wdir * sn
@@ -404,6 +444,53 @@ def vol(s):
 
 def cone(r0, r1, L, base, axis):
     return cq.Solid.makeCone(r0, r1, L, Vector(*base), Vector(*axis))
+
+
+def frustum(p0, axis, r0, r1, L):
+    """truncated cone from p0 along axis: radius r0 at p0, r1 at p0+axis*L."""
+    if abs(r0 - r1) < 1e-3:
+        return cq.Solid.makeCylinder(r0, L, Vector(*p0), Vector(*axis))
+    return cq.Solid.makeCone(r0, r1, L, Vector(*p0), Vector(*axis))
+
+
+def _inside(host, probe):
+    """fraction of probe's volume that lies inside host."""
+    pv = vol(probe)
+    if host is None or pv <= 0:
+        return 0.0
+    try:
+        return vol(host.intersect(probe)) / pv
+    except Exception:
+        return 0.0
+
+
+def _try_bool(fn, old):
+    """run a boolean; return (result, True) only if it is a valid solid that
+    didn't collapse, else (old, False) -- no logging, the caller decides."""
+    try:
+        new = big(fn())
+        if new is not None and not new.isValid():
+            new = big(new.fix())
+        if new is not None and new.isValid() and vol(new) > 0.7 * vol(old):
+            return new, True
+    except Exception:
+        pass
+    return old, False
+
+
+def _checked(new, old, what):
+    """keep a boolean result only if it is a valid solid that didn't collapse;
+    otherwise repair it, or keep the previous shape and log the problem."""
+    try:
+        if new is not None and not new.isValid():
+            new = big(new.fix())
+    except Exception:
+        pass
+    ok = new is not None and new.isValid() and vol(new) > 0.7 * vol(old)
+    if not ok:
+        BUILD_PROBLEMS.append(f"{what}: boolean gave an invalid/collapsed solid, left out")
+        return old
+    return new
 
 
 def y_half(sign, y0=0.0):
@@ -537,114 +624,208 @@ def build():
             if sol is None:
                 print(f"  !! segment {k} side {sd} loft failed")
             seg[k][sd] = sol
+    raw = {k: dict(v) for k, v in seg.items()}   # untouched lofts, for checks
 
-    # 2) crosswise conical tenons at every internal cut
+    # 2) crosswise conical tenons at every internal cut.
+    #    The tenon is fused onto seg A and PROTRUDES past the cut plane into
+    #    a matching socket in seg B. Only a short root (TEN_ROOT) sits inside
+    #    A -- an earlier version buried half the cone (22 mm) inside A, and on
+    #    curved / tapering segments that buried half punched out through A's
+    #    side or bottom (visible "second peg"), or collided with the socket at
+    #    A's other end (crown segment: the whole body was lost, only a cone
+    #    was left). Every joint is now also checked by VOLUME: the socket must
+    #    lie inside B, the root inside A, and the protruding peg must not run
+    #    into A itself; if not, the peg is shortened / thinned until it fits.
     lj = next((j for j in range(nseg) if cuts[j] <= _LUMB <= cuts[j + 1]), 1)
     pin_j = {0, nseg - 1, max(1, lj), min(nseg - 1, lj + 1)}
     pins = []
+    global JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM
+    JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM = [], [], []
+    try:
+        from shapely.geometry import Polygon, Point
+    except Exception:
+        Polygon = Point = None
+
+    def _room(pts, cc, ax):
+        """true min distance from cc to the edge of the section polygon,
+        measured in the plane perpendicular to ax (negative = outside)."""
+        tmp = np.array([0.0, 0.0, 1.0]) if abs(ax[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
+        uu = np.cross(ax, tmp); uu /= (np.linalg.norm(uu) + 1e-9)
+        vv = np.cross(ax, uu)
+        rel = pts - cc
+        pu, pv = rel @ uu, rel @ vv
+        if Polygon is not None:
+            try:
+                poly = Polygon(np.column_stack([pu, pv])).buffer(0)
+                d = poly.exterior.distance(Point(0.0, 0.0))
+                return d if poly.contains(Point(0.0, 0.0)) else -d
+            except Exception:
+                pass
+        return float(np.hypot(pu, pv).min())
+
+    def _fit_peg(cc, ax, r_cut, slope, P, host_root, host_sock, own_body, name, keep_out=()):
+        """shrink the peg (length P, radius r_cut at the joint plane) until:
+        socket inside host_sock, root inside host_root, peg clear of own_body,
+        and the socket clear of keep_out (the zone at the neighbour's OTHER
+        end where its own peg root will sit -- on a tight curl, like the
+        crown, the two joints of one part are only mm apart inside it).
+        Returns (peg_solid, socket_solid, r_cut, P, ok)."""
+        ok = False
+        for _ in range(10):
+            tip = max(2.5, r_cut - slope * P)
+            peg = frustum(cc - ax * TEN_ROOT, ax, r_cut + slope * TEN_ROOT, tip, P + TEN_ROOT)
+            prot = frustum(cc, ax, r_cut, tip, P)
+            root = frustum(cc - ax * TEN_ROOT, ax, r_cut + slope * TEN_ROOT, r_cut, TEN_ROOT)
+            sock = frustum(cc - ax * 0.5, ax, r_cut + slope * 0.5 + TEN_CLR,
+                           max(2.5, r_cut - slope * (P + SOCK_EXTRA)) + TEN_CLR, P + 0.5 + SOCK_EXTRA)
+            probe = frustum(cc + ax * 0.3, ax, r_cut + TEN_CLR,
+                            max(2.5, r_cut - slope * (P + SOCK_EXTRA)) + TEN_CLR, P + SOCK_EXTRA - 0.3)
+            f_sock = sum(_inside(h, probe) for h in host_sock)
+            f_root = sum(_inside(h, root) for h in host_root)
+            f_own = sum(_inside(h, prot) for h in own_body)
+            f_keep = sum(_inside(k, sock) for k in keep_out)
+            if f_sock > 0.985 and f_root > 0.97 and f_own < 0.01 and f_keep < 0.002:
+                ok = True
+                break
+            P *= 0.85
+            r_cut = max(4.0, r_cut * 0.92)
+        why = (f"socket {f_sock:.2f}, root {f_root:.2f}, self {f_own:.2f}, far-end {f_keep:.3f}")
+        return peg, sock, r_cut, P, ok, why
+
     for c in range(1, nseg):                     # cut between seg c-1 and seg c
-        Ce = np.array(center(cuts[c]))
         ne = np.array(tangent(cuts[c])); ne = ne / (np.linalg.norm(ne) + 1e-9)
         A, B = seg[c - 1], seg[c]
         want_pin = (c in pin_j and fork_amt(cuts[c]) < 1e-3)
-        # join each half of seg A to the nearest half of seg B (by Y centre)
+        b_raw = [raw[c][kk] for kk in B if raw[c][kk] is not None]
         for sda, ap in list(A.items()):
             if ap is None:
                 continue
-            yc = ap.Center().y     # whole-segment centroid -- only used to pick
-                                    # the matching B half below, NOT to place the
-                                    # tenon (see yc_cut).
-            kb = min((kk for kk, bb in B.items() if bb is not None),
-                     key=lambda kk: abs(B[kk].Center().y - yc), default=None)
-            if kb is None:
-                continue
-            # tenon/socket position: the TRUE 3D centroid of the cut face's own
-            # profile at this exact station/side (wire_at), not a global-Y
-            # offset. A global-Y offset silently assumes "sideways" always
-            # means the global Y axis, which breaks wherever the section has
-            # twisted (TWIST_S) away from its untwisted starting orientation
-            # -- confirmed visually near the lumbar (twisted zone): the old
-            # Y-bbox-based centre landed entirely outside the actual
-            # cross-section, in empty space below it, not just close to an
-            # edge. Using the profile's own 3D point cloud sidesteps any
-            # assumption about which global axis "sideways" is.
+            # peg centre = true centroid of THIS side's cut-face profile
             cut_pts = np.array([v.toTuple() for v in wire_at(cuts[c], sda).Vertices()])
-            cc = cut_pts.mean(axis=0)                   # true centroid, in 3D
-            base = cc - ne * (TEN_L * 0.5)               # tenon base: half its length into A
-            # scale the tenon diameter to the local section thickness (~38%,
-            # min wall), THEN clamp it to what THIS cut face actually has
-            # room for: project its own points into the 2D plane
-            # perpendicular to `ne` and measure the true min distance from
-            # cc to the polygon boundary (not an axis-aligned bounding box,
-            # which over/understates the margin whenever the polygon isn't
-            # axis-aligned) -- never let the tenon exceed real material.
+            cc = cut_pts.mean(axis=0)
             th_loc = itp(cuts[c], TH_S)
             tr = min(TEN_R, max(7.0, 0.38 * th_loc))
-            _tmp = np.array([0.0, 0.0, 1.0]) if abs(ne[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
-            _uu = np.cross(ne, _tmp); _uu /= (np.linalg.norm(_uu) + 1e-9)
-            _vv = np.cross(ne, _uu)
-            _rel = cut_pts - cc
-            _pu, _pv = _rel @ _uu, _rel @ _vv
-            try:
-                from shapely.geometry import Polygon, Point
-                _poly = Polygon(np.column_stack([_pu, _pv])).buffer(0)
-                _d = _poly.exterior.distance(Point(0.0, 0.0))
-                avail = (_d if _poly.contains(Point(0.0, 0.0)) else -_d) - 3.0
-            except Exception:
-                avail = np.hypot(_pu, _pv).min() - 3.0   # fallback: nearest-vertex distance
-            tr = min(tr, max(5.0, avail))
-            tt = tr * (TEN_TIP / TEN_R)
-            try:
-                A[sda] = big(ap.fuse(cone(tr, tt, TEN_L, base, ne)))
-            except Exception:
-                pass
-            try:
-                # SOCKET = exact negative of the tenon + uniform clearance
-                # (the SAME cone!) -> the tenon seats fully, on the cut face,
-                # not by wedging on a mismatched taper
-                B[kb] = big(B[kb].cut(cone(tr + TEN_CLR, tt + TEN_CLR, TEN_L, base, ne)))
-            except Exception:
-                pass
-            # dia 10 PIN: crosses through the socket (seg B) and the tenon
-            # (seg A) -> the tenon cannot be pulled out (a lock against the
-            # joint opening). Position = 28% of the tenon length past the
-            # cut, perpendicular to the tenon axis.
+            tr = min(tr, max(5.0, _room(cut_pts, cc, ne) - 3.0))
+            slope = (TEN_R - TEN_TIP) / TEN_L
+            r_cut = tr - slope * TEN_L * 0.5            # radius at the joint plane
+            name = f"cut {c} (SEG_{c-1:02d}{ {-1:'L',1:'R',0:''}[sda] } -> SEG_{c:02d})"
+            keep = []
+            if c + 1 < nseg:                          # B's far end is a joint too
+                nf = np.array(tangent(cuts[c + 1])); nf = nf / (np.linalg.norm(nf) + 1e-9)
+                for kb in B:
+                    if B[kb] is None:
+                        continue
+                    cf = np.array([v.toTuple() for v in wire_at(cuts[c + 1], kb).Vertices()]).mean(axis=0)
+                    keep.append(cq.Solid.makeCylinder(TEN_R + 3.0, TEN_ROOT + 3.0,
+                                                      Vector(*(cf - nf * (TEN_ROOT + 3.0))), Vector(*nf)))
+            peg, sock, r_cut, P, ok, why = _fit_peg(
+                cc, ne, r_cut, slope, TEN_L * 0.5,
+                host_root=[A[sda]], host_sock=b_raw,
+                own_body=[raw[c - 1][sda]], name=name, keep_out=keep)
+            if not ok:
+                if want_pin:           # a load-path joint MUST get its peg + pin
+                    BUILD_PROBLEMS.append(f"{name}: no room for the peg on a load-path joint ({why})")
+                else:
+                    # no physical room (e.g. the inner side of the crown curl):
+                    # this half is joined by its full glued face only; the other
+                    # half + the L/R seam peg keep the joint aligned
+                    JOINT_REPORT.append((name + " -> glued face only, no room for a peg", 0.0, 0.0, True))
+                continue
+            newA, fused = _try_bool(lambda: A[sda].fuse(peg), A[sda])
+            if not fused:
+                if want_pin:
+                    BUILD_PROBLEMS.append(f"{name}: peg could not be fused cleanly on a load-path joint")
+                else:
+                    JOINT_REPORT.append((name + " -> glued face only (the CAD kernel can't fuse a peg "
+                                         "cleanly onto this tightly curled part)", 0.0, 0.0, True))
+                continue                      # no peg -> no socket either
+            A[sda] = newA
+            JOINT_REPORT.append((name, r_cut, P, ok))
+            JOINT_GEOM.append((name, peg, sock, cc, ne, (c - 1, sda),
+                               [(c, kb) for kb in B if B[kb] is not None]))
+            # socket goes into EVERY half of B it touches: when a single piece
+            # meets a split pair (or vice versa) the peg straddles the L/R seam,
+            # and both halves need their share of the hole -- otherwise the
+            # other half physically blocks the peg.
+            for kb in list(B):
+                if B[kb] is None:
+                    continue
+                try:
+                    B[kb] = _checked(big(B[kb].cut(sock)), B[kb], name + " socket")
+                except Exception:
+                    BUILD_PROBLEMS.append(name + ": socket cut failed")
+            # dia 10 PIN through socket + peg -> the peg cannot be pulled out
             if want_pin:
                 pax = np.cross(ne, [0.0, 0.0, 1.0])
                 if np.linalg.norm(pax) < 1e-6:
                     pax = np.array([0.0, 1.0, 0.0])
                 pax = pax / (np.linalg.norm(pax) + 1e-9)
-                pp = cc + ne * (TEN_L * 0.28)
+                pp = cc + ne * (P * PIN_POS)
                 ph = cq.Solid.makeCylinder(PIN_R + PIN_CLR, 400,
                                            Vector(*(pp - pax * 200.0)), Vector(*pax))
-                try: A[sda] = big(A[sda].cut(ph))
-                except Exception: pass
-                try: B[kb] = big(B[kb].cut(ph))
-                except Exception: pass
+                # the hole runs across the full width, so it goes through every
+                # half it crosses (a pin must never collide with the neighbour)
+                for grp in (A, B):
+                    for kk in list(grp):
+                        if grp[kk] is None:
+                            continue
+                        try: grp[kk] = _checked(big(grp[kk].cut(ph)), grp[kk], name + " pin hole")
+                        except Exception: pass
                 pins.append(cq.Solid.makeCylinder(PIN_R, 150,
                             Vector(*(pp - pax * 75.0)), Vector(*pax)))
 
-    # 3) lengthwise (L/R) tenon at the seam — only where both halves exist
-    #    and it is NOT in the forked zone
+    # 3) lengthwise (L/R) tenon on the seam -- only where the two halves'
+    #    seam faces actually coincide (no fork splay anywhere on the segment).
+    #    Axis = the section's own width direction (it twists with TWIST_S),
+    #    centred on the seam face itself, radius limited by the local
+    #    thickness -- the old fixed Y-axis, 12 mm radius peg was thicker
+    #    than the backrest in places and broke out through its faces.
+    lslope = (LTEN_R - LTEN_TIP) / LTEN_L
     for k in range(nseg):
-        if -1 in seg[k] and 1 in seg[k] and fork_amt(0.5 * (cuts[k] + cuts[k + 1])) < 0.15:
-            L, R = seg[k].get(-1), seg[k].get(1)
-            if L is None or R is None:
-                continue
-            Cm = np.array(center(0.5 * (cuts[k] + cuts[k + 1])))
-            base = Cm - np.array([0.0, LTEN_L * 0.5, 0.0])
-            try:
-                seg[k][-1] = big(L.fuse(cone(LTEN_R, LTEN_TIP, LTEN_L, base, [0, 1.0, 0])))
-            except Exception:
-                pass
-            try:
-                # same cone + uniform clearance (not a different taper)
-                seg[k][1] = big(R.cut(cone(LTEN_R + TEN_CLR, LTEN_TIP + TEN_CLR,
-                                           LTEN_L, base, [0, 1.0, 0])))
-            except Exception:
-                pass
+        if not (-1 in seg[k] and 1 in seg[k]):
+            continue
+        if max(fork_amt(cuts[k]), fork_amt(cuts[k + 1])) > 1e-3:
+            continue
+        if seg[k][-1] is None or seg[k][1] is None:
+            continue
+        smid = 0.5 * (cuts[k] + cuts[k + 1])
+        C, wv, tv = _frame(smid)
+        C = np.array(C.toTuple()); w = np.array(wv.toTuple()); t = np.array(tv.toTuple())
+        pts = np.array([v.toTuple() for v in wire_at(smid, -1).Vertices()])
+        wc = (pts - C) @ w
+        seam = pts[wc >= wc.max() - 0.5]              # the L half's seam edge
+        if len(seam) < 2:
+            continue
+        zs = (seam - C) @ t
+        cs = C + w * wc.max() + t * 0.5 * (zs.min() + zs.max())
+        half = 0.5 * (zs.max() - zs.min())
+        r_seam = min(LTEN_R - lslope * LTEN_L * 0.5, half - 3.0)
+        name = f"seam SEG_{k:02d} L->R"
+        if r_seam < 4.0:
+            JOINT_REPORT.append((name + " (too thin: glued face only)", 0.0, 0.0, True))
+            continue
+        peg, sock, r_seam, P, ok, why = _fit_peg(
+            cs, w, r_seam, lslope, LTEN_L * 0.5,
+            host_root=[seg[k][-1]], host_sock=[seg[k][1]],
+            own_body=[raw[k][-1]], name=name)
+        if not ok:
+            JOINT_REPORT.append((name + " -> glued face only, no room for a peg", 0.0, 0.0, True))
+            continue
+        newL, fused = _try_bool(lambda: seg[k][-1].fuse(peg), seg[k][-1])
+        if not fused:
+            JOINT_REPORT.append((name + " -> glued face only (peg can't be fused cleanly here)", 0.0, 0.0, True))
+            continue
+        seg[k][-1] = newL
+        JOINT_REPORT.append((name, r_seam, P, ok))
+        JOINT_GEOM.append((name, peg, sock, cs, w, (k, -1), [(k, 1)]))
+        try:
+            seg[k][1] = _checked(big(seg[k][1].cut(sock)), seg[k][1], name + " socket")
+        except Exception:
+            BUILD_PROBLEMS.append(name + ": socket cut failed")
 
-    # 4) output
+    # 4) output + a final sanity gate on every part: valid solid, and its
+    #    volume still close to its own raw loft (a joint may add a peg or
+    #    remove a socket -- it must never eat the part itself)
     out = []
     for k in range(nseg):
         vert = seg_turn(cuts[k], cuts[k + 1]) > VERT_TURN
@@ -652,6 +833,12 @@ def build():
             if sol is None or vol(sol) < 500.0:
                 continue
             tag = {-1: "L", 1: "R", 0: ""}[sd]
+            v0 = vol(raw[k][sd]) if raw[k].get(sd) is not None else 0.0
+            ratio = vol(sol) / v0 if v0 > 0 else 1.0
+            if not sol.isValid():
+                BUILD_PROBLEMS.append(f"SEG_{k:02d}{tag}: invalid solid after joints")
+            if not (0.80 <= ratio <= 1.25):
+                BUILD_PROBLEMS.append(f"SEG_{k:02d}{tag}: volume {ratio:.0%} of its raw loft")
             out.append((f"SEG_{k:02d}{tag}", sol, vert, k, sd))
     return out, pins, cuts, pin_j
 
@@ -681,6 +868,21 @@ def main():
 
     items, pins, cuts, pin_j = build()
     nseg = len(cuts) - 1
+
+    # ── geometry gate: every joint's peg + socket was volume-checked inside
+    # build(); any part that came out invalid or lost/gained volume stops the
+    # export here, the same way a failed strength check does.
+    shrunk = [(n, r, p) for n, r, p, ok in JOINT_REPORT if ok and p > 0 and p < 21.9 and "seam" not in n]
+    glued_only = [n for n, r, p, ok in JOINT_REPORT if "glued face only" in n]
+    print(f"\njoints: {len(JOINT_REPORT)} checked, {len(shrunk)} crosswise pegs shortened to fit, "
+          f"{len(glued_only)} glued face only")
+    for n, r, p in shrunk:
+        print(f"   {n}: peg r {r:.1f} mm, protrudes {p:.1f} mm")
+    for n in glued_only:
+        print(f"   {n}")
+    if BUILD_PROBLEMS:
+        raise SystemExit("\n!! REFUSING TO EXPORT -- joint geometry problems:\n   "
+                         + "\n   ".join(BUILD_PROBLEMS) + "\n")
 
     # 220 sections keeps the coral/foam relief legible while staying well
     # under the 10 MB submission budget (the fine cell pattern bakes real
@@ -752,10 +954,11 @@ def main():
         for i, (nm, v) in enumerate(legend, 1):
             q = f"{len(pins)}x" if nm == "PIN" else "1x"
             fh.write(f"{i:2d}. {nm:12s} {q}  {'[print STANDING, no supports]' if v else ''}\n")
-        fh.write("\ncrosswise joint (baguette-cut): conical tenon dia 32 + two-part epoxy\n")
-        fh.write("lengthwise joint (L/R seam): transverse tenon dia 24 + epoxy\n")
-        fh.write(f"PIN dia 10: {len(pins)}x, one on each side of the lumbar (the most loaded joint)\n")
-        fh.write(f"{nvert} segments print STANDING (still without supports)\n")
+        fh.write("\ncrosswise joint (baguette-cut): conical peg dia 27 at the face, 22 mm into the "
+                 "neighbour's socket, + two-part epoxy on the whole face\n")
+        fh.write("lengthwise joint (L/R seam): transverse peg up to dia 20 + epoxy\n")
+        fh.write(f"PIN dia {2 * PIN_R:.0f}: {len(pins)}x, printed SOLID (100% infill), "
+                 f"one on each side of the lumbar (the most loaded joint)\n")
 
     print(f"\nBOARD LEGEND: {len(legend)} items (limit 49)   standing: {nvert}")
     print("does not fit:", bad if bad else "none — all OK")

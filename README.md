@@ -60,7 +60,7 @@ the STL's cell "5"), not the box's on-page position.
 **Slicing is NOT a separate file** — it lives inside `manta_ribbon.py`, in the
 `build()` function: it makes crosswise cuts (by length + curvature, avoiding
 the knee and lumbar), a lengthwise L/R cut on wide segments, conical tenons
-at every cut, and a dia 10 pin only at the lumbar joints.
+at every cut, and a solid dia 11 pin only at the lumbar joints.
 
 ---
 
@@ -138,13 +138,12 @@ everyone needs a chair rated for a 120 kg dynamic sitter. `manta_ribbon_personal
 is the exact same generator with `TH_S` thinned to 75% and infill dropped
 to 20%; `manta_strength_check_personal.py` re-verifies it at a 90 kg design
 target (still a healthy margin over a single 60 kg user, plus guests) — on
-the primary (epoxied) load path, weakest joint **3.2x**. One check is an
-exception: the PETG-only backup (tenon+pin, no epoxy — what would carry
-the joint if the glue itself failed) comes out to **0.9x** at 20% infill,
-just under the design's own 1.0x bar; it doesn't gate generation (that's a
-deliberate, explicit trade-off, not a rounding gap), but it does mean this
-variant leans on the epoxy actually being applied — no skipping the glue
-step on `MANTA_LIGHT/` parts. `MANTA_LIGHT/` is the already-generated,
+the primary (epoxied) load path, weakest check **1.6x**. The PETG-only
+backup (peg + pin, no epoxy — what would carry the joint if the glue
+itself failed) comes out to **0.5x** at 20% infill; it doesn't gate
+generation (a deliberate, explicit trade-off), but it means this variant
+relies on the epoxy actually being applied — no skipping the glue step on
+`MANTA_LIGHT/` parts. `MANTA_LIGHT/` is the already-generated,
 numbered result: same 42 parts, same joints, ~40% less filament
 (**9.6 kg vs 16.2 kg**, run `manta_material_personal.py` for the cost at
 your own filament price). This is a demonstration variant, not the
@@ -166,13 +165,29 @@ The joint is **not "just a pin."** In order of importance:
 1. **The full solid cross-section, glued face-to-face.** Every cut is
    perpendicular to the ribbon's axis, so you're gluing two flat faces of
    solid material against each other — 6,600–17,000 mm² of epoxy per joint.
-   This is the main strength. (Margin in the strength check: **~27x**, at
-   the weakest epoxied joint **~4.8x** — see `manta_strength_check.py`.)
-2. **A conical tenon (dia 32)** at the centre of the cut — self-centring,
-   and it carries the tension side so the joint can't "open up."
-3. **A dia 10 pin** — ONLY at the 2 joints beside the lumbar. It's a
-   **backup**, not the main joint. Even if the epoxy failed completely, the
-   tenon + pin alone still give a **1.6x margin** there (hand-break tested).
+   This is the main strength. (Margin in the strength check: **~26x**; the
+   epoxy on the peg **4.3x**; weakest glued check **2.1x** — see
+   `manta_strength_check.py`.)
+2. **A conical peg (dia 27 at the face, 22 mm long)** at the centre of the
+   cut — self-centring, it aligns the joint and carries shear. Only 3 mm of
+   it is fused into its own part; the rest sits in the neighbour's socket
+   (0.6 mm deeper than the peg, so the glue faces meet, not the tip).
+3. **A dia 11 pin, printed SOLID (100% infill)** — ONLY at the 2 joints
+   beside the lumbar. A cone in a cone slides straight out, so without glue
+   the pin is the only thing holding it: the backup is peg root -> peg ->
+   pin in *series*, and its capacity is the weakest of those. With the pin
+   placed close to the face it comes to **0.9x** of the full design load
+   (governed by the peg tearing out behind the pin) — a real limp-home
+   backup, not a second main joint. An earlier version of the check *added*
+   the peg and pin strengths together and reported 1.6x; that was wrong.
+
+`python manta_joint_check.py` rebuilds every part and virtually assembles
+the chair: every peg must land in its neighbour's socket, no peg end may
+stick out of its own part, pins may only sit in holes, and no two
+neighbouring parts may overlap. On the tightly curled crown there is no
+room for a peg on the inner half of two joints (the part's two cut faces
+are ~11 mm apart there) — those two are joined on the glued face only,
+and the report lists them.
 
 Epoxy on PETG: **sand the face (P120) and degrease** before gluing — otherwise
 the epoxy won't bond well. Leave it clamped to cure for 24 h.
@@ -185,6 +200,7 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `manta_apply_template.py` — embeds the chair/parts into the official `3D_Template.stl`
 - `manta_strength_check.py` — strength + stability
 - `manta_ergonomics_check.py` — seat/backrest dimensions vs standard reference ranges
+- `manta_joint_check.py` — virtual assembly: every peg seats in its neighbour, nothing sticks out or overlaps
 - `manta_uniqueness_check.py` — proves no two of the 41 segments are geometrically identical
 - `manta_orient.py` — rotates each part to its lowest-overhang, support-free print orientation
 - `manta_joint_test.py` — physical joint test

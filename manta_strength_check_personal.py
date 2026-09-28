@@ -142,20 +142,33 @@ F_couple = M_cut / (0.7 * CUT_TH)
 face_area = CUT_W * CUT_TH * FACE_EFF
 chk("Cut near lumbar: epoxy tension (face)", F_couple / (0.5 * face_area), etn, "MPa")
 
-# 5) CUT near the lumbar — MECHANICAL BACKUP (if the epoxy were to fail
-#    eventually): the tension couple carried by the tenon (PETG core) + the
-#    dia 10 pin (double shear).
-cap_root = Acirc(TENON_R) * 0.85
-pin_2sh  = 2 * Acirc(PIN_R)
-cap_N    = cap_root * la + pin_2sh * ta          # tension capacity without glue [N]
-chk("Cut at lumbar: tenon+pin in tension (no glue)", F_couple, cap_N, "N", gate=False,
-    note="backup only — assumes the epoxied joint is always used")
-# 5b) transverse SHEAR at the cut (horizontal backrest reaction) — carried by the tenon in the socket
+# 5) CUT near the lumbar — MECHANICAL BACKUP if the epoxy were to fail.
+#    A cone in a cone slides straight out, so WITHOUT glue only the pin holds
+#    it: the load runs peg root -> peg -> pin -> neighbour IN SERIES, and the
+#    capacity is the WEAKEST link, not the sum (an earlier version added the
+#    peg and the pin together and used the peg's 16 mm base radius instead of
+#    its real radius where it crosses the joint).
+TENON_RC = TENON_R - (TENON_R - TENON_TIP) * 0.5    # peg radius AT the joint plane
+TENON_P  = TENON_L * 0.5                            # peg length inside the socket
+PIN_POS  = st.PIN_POS                               # pin centre, fraction of TENON_P
+ta_pin   = TAU_ULT * 1.0 / SF                       # pins are printed SOLID (100% infill)
+r_at_pin = TENON_RC - (TENON_R - TENON_TIP) / TENON_L * TENON_P * PIN_POS
+cap_root = Acirc(TENON_RC) * 0.85 * la                          # peg breaks at the joint
+cap_pin  = 2 * Acirc(PIN_R) * ta_pin                            # pin, double shear
+cap_bear = (2 * PIN_R) * (2 * r_at_pin) * sa                    # pin crushes the peg
+cap_tear = 2 * (TENON_P * (1 - PIN_POS) - PIN_R) * (2 * r_at_pin) * ta   # pin tears out the peg tip
+cap_N    = min(cap_root, cap_pin, cap_bear, cap_tear)
+_gov     = ["peg root", "pin shear", "pin bearing on the peg", "peg tear-out behind the pin"][
+            [cap_root, cap_pin, cap_bear, cap_tear].index(cap_N)]
+chk("Cut at lumbar: peg+pin in tension (no glue)", F_couple, cap_N, "N", gate=False,
+    note=f"backup only — assumes the epoxied joint is always used; governed by {_gov}")
+# 5b) transverse SHEAR at the cut — carried by the peg's own section where it
+#     crosses the joint (the pin sits beyond the joint plane, it doesn't help here)
 V_cut = Hb + W * 0.20
-chk("Cut at lumbar: transverse shear (tenon in socket)", V_cut, Acirc(TENON_R) * 0.85 * ta + pin_2sh * ta, "N",
-    gate=False, note="backup only — assumes the epoxied joint is always used")
-cap_lat = math.pi * (TENON_R + TENON_TIP) / 2 * TENON_L
-chk("Cut at lumbar: tenon epoxy shear (with glue)", F_couple / cap_lat, esh, "MPa")
+chk("Cut at lumbar: transverse shear (peg in socket)", V_cut, Acirc(TENON_RC) * 0.85 * ta, "N")
+# 5c) epoxy on the peg — only the part INSIDE the socket is a glue surface
+cap_lat = math.pi * (TENON_RC + TENON_TIP) * TENON_P
+chk("Cut at lumbar: peg epoxy shear (with glue)", F_couple / cap_lat, esh, "MPa")
 
 # 6) LENGTHWISE L/R SEAM under the seat — asymmetric sit (weight on one half)
 M_seam = (W * 0.5) * 0.11        # lever ~110 mm from the centreline to the sit-bone

@@ -113,8 +113,10 @@ I = lambda w, h: w * h ** 3 / 12.0
 Acirc = lambda r: math.pi * r * r
 
 rows = []
-def chk(name, act, allow, unit, note=""):
-    rows.append((name, act, allow, allow / act if act > 0 else 999, act <= allow, unit, note))
+def chk(name, act, allow, unit, note="", gate=True):
+    """gate=False: reported, but does not block auto-export (used for the
+    no-glue backup: this is a glued chair, the backup is a bonus)."""
+    rows.append((name, act, allow, allow / act if act > 0 else 999, act <= allow, unit, note, gate))
 
 # 1) SEAT — bending at mid-span (UDL, simply supported knee<->lumbar)
 M_seat = W * SEAT_SPAN / 8.0
@@ -134,18 +136,34 @@ F_couple = M_cut / (0.7 * CUT_TH)
 face_area = CUT_W * CUT_TH * FACE_EFF
 chk("Cut near lumbar: epoxy tension (face)", F_couple / (0.5 * face_area), etn, "MPa")
 
-# 5) CUT near the lumbar — MECHANICAL BACKUP (if the epoxy were to fail
-#    eventually): the tension couple carried by the tenon (PETG core) + the
-#    dia 10 pin (double shear).
-cap_root = Acirc(TENON_R) * 0.85
-pin_2sh  = 2 * Acirc(PIN_R)
-cap_N    = cap_root * la + pin_2sh * ta          # tension capacity without glue [N]
-chk("Cut at lumbar: tenon+pin in tension (no glue)", F_couple, cap_N, "N")
-# 5b) transverse SHEAR at the cut (horizontal backrest reaction) — carried by the tenon in the socket
+# 5) CUT near the lumbar — MECHANICAL BACKUP if the epoxy were to fail.
+#    A cone in a cone slides straight out, so WITHOUT glue only the pin holds
+#    it: the load runs peg root -> peg -> pin -> neighbour IN SERIES, and the
+#    capacity is the WEAKEST link, not the sum (an earlier version added the
+#    peg and the pin together, and used the peg's 16 mm base radius instead of
+#    its real radius where it crosses the joint -- it reported 1.6x; the
+#    correct series model gives much less, so the pin was upgraded).
+TENON_RC = TENON_R - (TENON_R - TENON_TIP) * 0.5    # peg radius AT the joint plane
+TENON_P  = TENON_L * 0.5                            # peg length inside the socket
+PIN_POS  = st.PIN_POS                               # pin centre, fraction of TENON_P
+ta_pin   = TAU_ULT * 1.0 / SF                       # pins are printed SOLID (100% infill)
+r_at_pin = TENON_RC - (TENON_R - TENON_TIP) / TENON_L * TENON_P * PIN_POS
+cap_root = Acirc(TENON_RC) * 0.85 * la                          # peg breaks at the joint
+cap_pin  = 2 * Acirc(PIN_R) * ta_pin                            # pin, double shear
+cap_bear = (2 * PIN_R) * (2 * r_at_pin) * sa                    # pin crushes the peg
+cap_tear = 2 * (TENON_P * (1 - PIN_POS) - PIN_R) * (2 * r_at_pin) * ta   # pin tears out the peg tip
+cap_N    = min(cap_root, cap_pin, cap_bear, cap_tear)
+_gov     = ["peg root", "pin shear", "pin bearing on the peg", "peg tear-out behind the pin"][
+            [cap_root, cap_pin, cap_bear, cap_tear].index(cap_N)]
+chk("Cut at lumbar: peg+pin in tension (no glue)", F_couple, cap_N, "N",
+    note=f"backup only (glued chair); governed by {_gov}", gate=False)
+# 5b) transverse SHEAR at the cut — carried by the peg's own section where it
+#     crosses the joint (the pin sits beyond the joint plane, it doesn't help here)
 V_cut = Hb + W * 0.20
-chk("Cut at lumbar: transverse shear (tenon in socket)", V_cut, Acirc(TENON_R) * 0.85 * ta + pin_2sh * ta, "N")
-cap_lat = math.pi * (TENON_R + TENON_TIP) / 2 * TENON_L
-chk("Cut at lumbar: tenon epoxy shear (with glue)", F_couple / cap_lat, esh, "MPa")
+chk("Cut at lumbar: transverse shear (peg in socket)", V_cut, Acirc(TENON_RC) * 0.85 * ta, "N")
+# 5c) epoxy on the peg — only the part INSIDE the socket is a glue surface
+cap_lat = math.pi * (TENON_RC + TENON_TIP) * TENON_P
+chk("Cut at lumbar: peg epoxy shear (with glue)", F_couple / cap_lat, esh, "MPa")
 
 # 6) LENGTHWISE L/R SEAM under the seat — asymmetric sit (weight on one half)
 M_seam = (W * 0.5) * 0.11        # lever ~110 mm from the centreline to the sit-bone
@@ -200,10 +218,12 @@ TIP_SIDE      = FOOT_HALF_Y / _hu
 
 
 def worst_margin():
-    """(margin, name) of the weakest row — used by manta_ribbon.py to gate
-    exports. Rows are already computed above, at import time, from the LIVE
-    W_S/TH_S tables, so this always reflects the current parameters."""
-    return min(((m, n) for n, a, al, m, ok, u, note in rows), key=lambda t: t[0])
+    """(margin, name) of the weakest GATING row — used by manta_ribbon.py to
+    gate exports. Rows are already computed above, at import time, from the
+    LIVE W_S/TH_S tables, so this always reflects the current parameters.
+    The no-glue backup row is reported but does not gate (see chk)."""
+    return min(((m, n) for n, a, al, m, ok, u, note, gate in rows if gate),
+               key=lambda t: t[0])
 
 
 if __name__ == "__main__":
@@ -213,12 +233,15 @@ if __name__ == "__main__":
     print(f"W vertical {W:.0f} N - Hb into backrest {Hb:.0f} N - Hs sideways {Hs:.0f} N\n")
     print(f"{'LOCATION':38s}{'VALUE':>9s}{'ALLOW.':>9s}{'MARGIN':>7s}  STATUS")
     worst = (9e9, "")
-    for n, a, al, m, ok, u, note in rows:
-        if m < worst[0]:
+    for n, a, al, m, ok, u, note, gate in rows:
+        if gate and m < worst[0]:
             worst = (m, n)
-        print(f"{n:38s}{a:8.1f}{u[:3]:>3s}{al:8.1f}{u[:3]:>3s}{m:6.1f}x  {'OK' if ok else 'X FAIL'}")
+        tag = "" if gate else "  [backup only, not gated]"
+        print(f"{n:38s}{a:8.1f}{u[:3]:>3s}{al:8.1f}{u[:3]:>3s}{m:6.1f}x  {'OK' if ok else 'X FAIL'}{tag}")
+        if note:
+            print(f"{'':40s}-> {note}")
 
-    print(f"\nWEAKEST LINK: {worst[1]}  (margin {worst[0]:.1f}x)")
+    print(f"\nWEAKEST LINK (gates auto-export): {worst[1]}  (margin {worst[0]:.1f}x)")
     print(f"MAX safe weight (SF={SF}, dyn={DYN}): ~{M_KG * worst[0]:.0f} kg")
 
     print("\nTipping stability (ratio > 0.5 = good, 0.3-0.5 = OK for normal use):")
@@ -228,7 +251,7 @@ if __name__ == "__main__":
     print(f"  sideways (splayed pad): {TIP_SIDE:.2f}")
 
     print("\nINCREASE THESE IF MARGIN < 1.5:")
-    for n, a, al, m, ok, u, note in rows:
+    for n, a, al, m, ok, u, note, gate in rows:
         if m < 1.5:
-            print(f"  {n}  (margin {m:.1f}x)")
+            print(f"  {n}  (margin {m:.1f}x){'  [backup only]' if not gate else ''}")
     print("\n(first-order, not FEA. Physical joint test: manta_joint_test.py.)\n")

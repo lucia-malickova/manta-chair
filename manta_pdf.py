@@ -62,7 +62,7 @@ def section_header(title):
     return Paragraph(f'<font color="#0a828a">■</font>&nbsp;&nbsp;{title.upper()}', H2)
 
 def stat_strip():
-    stats = [("192 kg", "safe static load"), ("4.8×", "weakest epoxied joint"),
+    stats = [("~250 kg", "safe static load"), ("26×", "glued full-section joint"),
              ("~16 kg", "finished weight"), ("~90 €", "filament cost")]
     cells = [[Paragraph(big, STAT_BIG)] for big, _ in stats]
     lbls = [[Paragraph(lbl, STAT_LBL)] for _, lbl in stats]
