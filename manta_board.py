@@ -194,8 +194,8 @@ wrap((170, 4770), "Exploded — 41 printed segments, no two alike. The ribbon is
 
 steps = [
  ("1", "Lay out by zone", "Parts 1-42 in reading order form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
- ("2", "Crosswise joints", "Every cut is a full solid cross-section. Seat the printed conical peg (dia 27 at the face); two-part epoxy over the whole face. No screws."),
- ("3", "Left + right halves", "Wide segments come in L+R halves. Join along the centre-line with the transverse peg (up to dia 20) + epoxy; the seam is the keel."),
+ ("2", "Left + right halves FIRST", "Wide segments come in L+R halves. Glue each pair along the centre-line on its transverse peg (up to dia 20) before anything else; the seam is the keel."),
+ ("3", "Crosswise joints", "Then join the segments: seat the printed conical peg (dia 27 at the face) in its socket, two-part epoxy over the whole face. No screws."),
  ("4", "Lumbar pins", "Only the two joints beside the lumbar: drive the dia 11 printed pin (x2, printed solid) through the joint before the epoxy sets."),
  ("5", "Sub-assemble, cure", "Build seat, backrest and each fork-foot separately. Cure 24 h. Then join at the lumbar and the two knees."),
  ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~250 kg."),

@@ -183,11 +183,22 @@ The joint is **not "just a pin."** In order of importance:
 
 `python manta_joint_check.py` rebuilds every part and virtually assembles
 the chair: every peg must land in its neighbour's socket, no peg end may
-stick out of its own part, pins may only sit in holes, and no two
-neighbouring parts may overlap. On the tightly curled crown there is no
-room for a peg on the inner half of two joints (the part's two cut faces
-are ~11 mm apart there) — those two are joined on the glued face only,
-and the report lists them.
+stick out of its own part, every socket must be closed inside ONE part
+with at least 2 mm of wall around it, pins may only sit in holes, and no
+two neighbouring parts may overlap. Where a whole piece meets a split L/R
+pair (and vice versa) the whole piece carries two pegs, one per half, so no
+socket is split across the seam. In the competition geometry every joint
+gets a peg; in the thinner `MANTA_LIGHT` backrest two joints on the right
+half (cuts 13 and 14) are too thin for a peg with a 2 mm wall — they are
+joined on the glued face only (the left half and the seam pegs keep them
+aligned), and the generator prints them in its report.
+
+**Assembly order matters:** glue each L+R pair of a segment together
+FIRST (their seam peg runs sideways, along that segment's own twisted
+width direction), and only then join the segments crosswise (all crosswise
+pegs of a joint are parallel, so a finished segment slides straight on).
+The other way round cannot be assembled. Each part's number is engraved on
+one of its glue faces (hidden once glued).
 
 Epoxy on PETG: **sand the face (P120) and degrease** before gluing — otherwise
 the epoxy won't bond well. Leave it clamped to cure for 24 h.

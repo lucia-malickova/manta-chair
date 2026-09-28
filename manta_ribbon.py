@@ -132,6 +132,7 @@ LTEN_R, LTEN_TIP, LTEN_L = 12.0, 8.0, 34.0  # lengthwise tenon (L/R)
 TEN_CLR = 0.12
 TEN_ROOT = 3.0        # mm of each peg fused into its own part (only the rest protrudes)
 SOCK_EXTRA = 0.6      # socket this much deeper than the peg: the glue faces meet, not the tip
+WALL_MIN = 2.0        # minimum wall left around every socket (mm)
 JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM = [], [], []
 PIN_R, PIN_CLR = 5.5, 0.15                   # dia 11 crosswise pin, printed SOLID (100% infill)
 PIN_POS = 0.35        # pin centre at this fraction of the peg length past the cut: close to
@@ -551,32 +552,54 @@ def cut_stations():
 
 
 LABEL_H = 7.0    # mm, id-label text height
-LABEL_D = 0.7    # mm, how far the label stands proud of the flat cut face
+LABEL_D = 0.7    # mm, how deep the label is ENGRAVED into the flat cut face
 
 
-def _label_solid(s, side, text, trailing):
-    """A small raised ID label on the flat cut face at s, offset clear of
-    the tenon/pin — sits INSIDE the glued joint once assembled (or on a
-    non-fit cut for split halves), so it never shows on the finished chair.
-    Lets a builder match a loose printed part to the assembly diagram.
-    Returns None (skip silently) if there isn't comfortably enough flat
-    area for it — a missing label beats a broken export."""
-    Cc = center(s)
-    _, wdir, tdir = _frame(s)
-    ne = np.array(tangent(s)); ne = ne / (np.linalg.norm(ne) + 1e-9)
-    if not trailing:
-        ne = -ne
-    a = itp(s, W_S) * 0.5
-    off = max(TEN_R + 10.0, TEN_R + 0.35 * a)
-    if off > a - 9.0:
-        return None
-    if side < 0:
-        off = -off
+def _label_solid(s, side, text, trailing, avoid=()):
+    """A small ID number ENGRAVED into the flat cut face at s -- it sits
+    inside the glued joint once assembled, so it never shows, but it lets a
+    builder match a loose printed part to the assembly diagram. Engraved,
+    not raised: an earlier raised label stood 0.7 mm proud of a GLUE FACE,
+    so the two faces could never meet, and on split halves it landed almost
+    exactly where the peg is. Placed on the face as far as possible from
+    every peg/socket centre in `avoid` and from the face's edge; returns
+    None (no label) if nowhere on the face has comfortable room."""
+    C, wdir, tdir = _frame(s)
+    C = np.array(C.toTuple())
     wv = np.array([wdir.x, wdir.y, wdir.z])
-    base = Cc + wv * off
+    ne = np.array(tangent(s)); ne = ne / (np.linalg.norm(ne) + 1e-9)
+    out = ne if trailing else -ne                 # outward normal of this face
+    pts = np.array([v.toTuple() for v in wire_at(s, side).Vertices()])
+    tmp = np.array([0.0, 0.0, 1.0]) if abs(ne[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
+    uu = np.cross(ne, tmp); uu /= np.linalg.norm(uu)
+    vv = np.cross(ne, uu)
     try:
-        pln = cq.Plane(origin=tuple(base), xDir=tuple(wv), normal=tuple(ne))
-        lbl = cq.Workplane(pln).text(text, LABEL_H, LABEL_D, combine=False,
+        from shapely.geometry import Polygon, Point
+        poly = Polygon(np.column_stack([(pts - C) @ uu, (pts - C) @ vv])).buffer(0)
+    except Exception:
+        return None
+    a = itp(s, W_S) * 0.5
+    ts = np.linspace(-a, a, 81)
+    if side < 0:
+        ts = ts[ts <= 0]
+    elif side > 0:
+        ts = ts[ts >= 0]
+    best, best_p = -1e9, None
+    for t in ts:
+        p = C + wv * t
+        q = Point((p - C) @ uu, (p - C) @ vv)
+        if not poly.contains(q):
+            continue
+        room = poly.exterior.distance(q) - 9.0            # half the text + margin
+        clear = min([np.linalg.norm(p - c) for c in avoid] or [1e9]) - (TEN_R + 18.0)
+        sc = min(room, clear)
+        if sc > best:
+            best, best_p = sc, p
+    if best_p is None or best < 0.0:
+        return None
+    try:
+        pln = cq.Plane(origin=tuple(best_p), xDir=tuple(wv), normal=tuple(out))
+        lbl = cq.Workplane(pln).text(text, LABEL_H, -LABEL_D, combine=False,
                                      halign="center", valign="center",
                                      font="Arial")
         return lbl.val() if hasattr(lbl, "val") else lbl
@@ -592,7 +615,11 @@ def seg_turn(s0, s1):
 
 
 def _loft_seg(s0, s1, side):
-    n = max(6, int((s1 - s0) * _LEN / 12) + 1)
+    # split halves in the fork transition get a section every 3 mm: with the
+    # usual 12 mm, the smooth loft between sections bulged ~1 mm across the
+    # L/R seam where the prongs start to splay, so the two halves overlapped
+    step = 3.0 if (side != 0 and max(fork_amt(s0), fork_amt(s1)) > 1e-3) else 12.0
+    n = max(6, int((s1 - s0) * _LEN / step) + 1)
     sol = big(loft([wire_at(s, side) for s in np.linspace(s0, s1, n)]))
     return sol if (sol is not None and vol(sol) > 500.0) else None
 
@@ -672,13 +699,16 @@ def build():
             root = frustum(cc - ax * TEN_ROOT, ax, r_cut + slope * TEN_ROOT, r_cut, TEN_ROOT)
             sock = frustum(cc - ax * 0.5, ax, r_cut + slope * 0.5 + TEN_CLR,
                            max(2.5, r_cut - slope * (P + SOCK_EXTRA)) + TEN_CLR, P + 0.5 + SOCK_EXTRA)
-            probe = frustum(cc + ax * 0.3, ax, r_cut + TEN_CLR,
-                            max(2.5, r_cut - slope * (P + SOCK_EXTRA)) + TEN_CLR, P + SOCK_EXTRA - 0.3)
+            # the socket PLUS a 2 mm wall all round it must lie inside the
+            # neighbour -- not just the hole itself (no paper-thin skin)
+            probe = frustum(cc + ax * 0.3, ax, r_cut + TEN_CLR + WALL_MIN,
+                            max(2.5, r_cut - slope * (P + SOCK_EXTRA)) + TEN_CLR + WALL_MIN,
+                            P + SOCK_EXTRA - 0.3)
             f_sock = sum(_inside(h, probe) for h in host_sock)
             f_root = sum(_inside(h, root) for h in host_root)
             f_own = sum(_inside(h, prot) for h in own_body)
             f_keep = sum(_inside(k, sock) for k in keep_out)
-            if f_sock > 0.985 and f_root > 0.97 and f_own < 0.01 and f_keep < 0.002:
+            if f_sock > 0.997 and f_root > 0.97 and f_own < 0.01 and f_keep < 0.002:
                 ok = True
                 break
             P *= 0.85
@@ -690,32 +720,45 @@ def build():
         ne = np.array(tangent(cuts[c])); ne = ne / (np.linalg.norm(ne) + 1e-9)
         A, B = seg[c - 1], seg[c]
         want_pin = (c in pin_j and fork_amt(cuts[c]) < 1e-3)
-        b_raw = [raw[c][kk] for kk in B if raw[c][kk] is not None]
-        for sda, ap in list(A.items()):
-            if ap is None:
-                continue
-            # peg centre = true centroid of THIS side's cut-face profile
-            cut_pts = np.array([v.toTuple() for v in wire_at(cuts[c], sda).Vertices()])
+        a_sides = [s for s in A if A[s] is not None]
+        b_sides = [s for s in B if B[s] is not None]
+        # which half gets which peg: every peg + socket must sit INSIDE one
+        # single part. Where a whole piece meets a split L/R pair, the whole
+        # piece gets TWO pegs, one centred in each half (a single central peg
+        # would straddle the L/R seam and leave an open half-hole in each half).
+        if a_sides == [0] and len(b_sides) > 1:
+            pairs = [(0, kb, kb) for kb in b_sides]
+        elif len(a_sides) > 1 and b_sides == [0]:
+            pairs = [(sa, 0, sa) for sa in a_sides]
+        else:
+            pairs = [(sa, sa if sa in b_sides else b_sides[0], sa) for sa in a_sides]
+        for sda, kb_t, prof in pairs:
+            ap = A[sda]
+            # peg centre = true centroid of the cut-face profile it must sit in
+            cut_pts = np.array([v.toTuple() for v in wire_at(cuts[c], prof).Vertices()])
             cc = cut_pts.mean(axis=0)
             th_loc = itp(cuts[c], TH_S)
             tr = min(TEN_R, max(7.0, 0.38 * th_loc))
             tr = min(tr, max(5.0, _room(cut_pts, cc, ne) - 3.0))
             slope = (TEN_R - TEN_TIP) / TEN_L
             r_cut = tr - slope * TEN_L * 0.5            # radius at the joint plane
-            name = f"cut {c} (SEG_{c-1:02d}{ {-1:'L',1:'R',0:''}[sda] } -> SEG_{c:02d})"
+            _t = {-1: 'L', 1: 'R', 0: ''}
+            name = f"cut {c} (SEG_{c-1:02d}{_t[sda]} -> SEG_{c:02d}{_t[kb_t]})"
             keep = []
             if c + 1 < nseg:                          # B's far end is a joint too
                 nf = np.array(tangent(cuts[c + 1])); nf = nf / (np.linalg.norm(nf) + 1e-9)
-                for kb in B:
-                    if B[kb] is None:
-                        continue
+                for kb in [kb_t]:
                     cf = np.array([v.toTuple() for v in wire_at(cuts[c + 1], kb).Vertices()]).mean(axis=0)
                     keep.append(cq.Solid.makeCylinder(TEN_R + 3.0, TEN_ROOT + 3.0,
                                                       Vector(*(cf - nf * (TEN_ROOT + 3.0))), Vector(*nf)))
             peg, sock, r_cut, P, ok, why = _fit_peg(
                 cc, ne, r_cut, slope, TEN_L * 0.5,
-                host_root=[A[sda]], host_sock=b_raw,
+                host_root=[A[sda]], host_sock=[raw[c][kb_t]],
                 own_body=[raw[c - 1][sda]], name=name, keep_out=keep)
+            if ok and want_pin and (r_cut < (TEN_R + TEN_TIP) / 2 - 0.05
+                                    or P < TEN_L * 0.5 - 0.05):
+                BUILD_PROBLEMS.append(f"{name}: load-path peg had to shrink (r {r_cut:.1f}, "
+                                      f"P {P:.1f}) -- the strength check assumes full size")
             if not ok:
                 if want_pin:           # a load-path joint MUST get its peg + pin
                     BUILD_PROBLEMS.append(f"{name}: no room for the peg on a load-path joint ({why})")
@@ -735,19 +778,11 @@ def build():
                 continue                      # no peg -> no socket either
             A[sda] = newA
             JOINT_REPORT.append((name, r_cut, P, ok))
-            JOINT_GEOM.append((name, peg, sock, cc, ne, (c - 1, sda),
-                               [(c, kb) for kb in B if B[kb] is not None]))
-            # socket goes into EVERY half of B it touches: when a single piece
-            # meets a split pair (or vice versa) the peg straddles the L/R seam,
-            # and both halves need their share of the hole -- otherwise the
-            # other half physically blocks the peg.
-            for kb in list(B):
-                if B[kb] is None:
-                    continue
-                try:
-                    B[kb] = _checked(big(B[kb].cut(sock)), B[kb], name + " socket")
-                except Exception:
-                    BUILD_PROBLEMS.append(name + ": socket cut failed")
+            JOINT_GEOM.append((name, peg, sock, cc, ne, (c - 1, sda), [(c, kb_t)]))
+            try:
+                B[kb_t] = _checked(big(B[kb_t].cut(sock)), B[kb_t], name + " socket")
+            except Exception:
+                BUILD_PROBLEMS.append(name + ": socket cut failed")
             # dia 10 PIN through socket + peg -> the peg cannot be pulled out
             if want_pin:
                 pax = np.cross(ne, [0.0, 0.0, 1.0])
@@ -910,13 +945,13 @@ def main():
         part_num = len(legend) + 1     # same 1..42 sequence as the board key / template cells
         # skip the 2 pin joints — the label offset doesn't account for the
         # pin hole there, avoid risking an overlap
+        ne_l = np.array(tangent(label_s)); ne_l = ne_l / (np.linalg.norm(ne_l) + 1e-9)
+        c_l = np.array(center(label_s))
+        on_face = [g[3] for g in JOINT_GEOM if abs(float((g[3] - c_l) @ ne_l)) < 1.0]
         lbl = None if label_c in pin_j else _label_solid(
-            label_s, seg_sd, str(part_num), trailing)
+            label_s, seg_sd, str(part_num), trailing, avoid=on_face)
         if lbl is not None:
-            try:
-                sol = big(sol.fuse(lbl))
-            except Exception:
-                pass
+            sol, _ok = _try_bool(lambda: sol.cut(lbl), sol)   # engraved; skip if it fails
         bb = sol.BoundingBox()
         dd = sorted([bb.xlen, bb.ylen, bb.zlen])
         fit = dd[0] <= BED[0] and dd[1] <= BED[1] and dd[2] <= BED[2]

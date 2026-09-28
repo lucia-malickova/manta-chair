@@ -3,8 +3,10 @@ MANTA — numbered, pre-oriented printable parts (matches Board key)
 Personal/lighter variant (~90 kg design target, not the competition entry).
 Each file is pre-rotated onto its own real cut/joint face (python manta_orient.py)
 — import and print as-is. All 42 parts land on a solid bed footprint (>=400 mm2).
-Every peg is checked by virtual assembly to seat in its neighbour's socket
-(python manta_joint_check.py). PIN: print SOLID (100 % infill) — its strength counts.
+Every peg is checked by virtual assembly (python manta_joint_check.py): it sits in a
+socket closed inside ONE neighbour part, with >= 2 mm wall around it.
+Each part number is ENGRAVED on one of its glue faces.
+PIN: print SOLID (100 % infill). ASSEMBLY: glue each L+R pair first, then join segments.
 Always print both halves (L + R) of a segment from the SAME version of the files.
 
 BOARD LEGEND  (42 items, limit 49)

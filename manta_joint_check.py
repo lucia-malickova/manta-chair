@@ -87,12 +87,29 @@ def main(gen_name="manta_ribbon"):
                 blocked = 1e9
             into_self = R[a_key].contains(prot).mean()
             worst_fit = max(worst_fit, blocked)
-            if into_nb < 0.95:
-                fails.append(f"{name}: only {into_nb:.0%} of the peg lands inside the neighbour")
+            if into_nb < 0.98:       # b_keys is ONE part: the socket must be closed inside it
+                fails.append(f"{name}: only {into_nb:.0%} of the peg lands inside its neighbour part "
+                             f"(socket open to a face/seam)")
             if blocked > max(20.0, 0.02 * g.vol(peg)):
                 fails.append(f"{name}: {blocked:.0f} mm3 of the peg hits solid material (socket missing/misplaced)")
             if into_self > 0.02:
                 fails.append(f"{name}: {into_self:.0%} of the peg runs back into its own part")
+        # wall around the socket: points 2 mm outside the peg's side surface
+        # must still be inside the neighbour -> no paper-thin skin over a hole
+        try:
+            sp, _ = trimesh.sample.sample_surface(mesh(peg), 1500)
+            sd = (sp - cc) @ ax
+            radial = (sp - cc) - np.outer(sd, ax)
+            rn = np.linalg.norm(radial, axis=1)
+            keep = (sd > 1.0) & (rn > 2.0)
+            wall_pts = sp[keep] + radial[keep] / rn[keep, None] * 2.0
+            if len(wall_pts):
+                wall = inside_any(wall_pts, b_raw).mean()
+                if wall < 0.97:
+                    fails.append(f"{name}: socket wall thinner than 2 mm in places "
+                                 f"({wall:.0%} of a 2 mm shell is inside the part)")
+        except Exception:
+            pass
         if len(root):
             in_own = R[a_key].contains(root).mean()
             if in_own < 0.95:
