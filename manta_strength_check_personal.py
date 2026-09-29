@@ -169,7 +169,7 @@ chk("Cut at lumbar: peg+pin in tension (no glue)", F_couple, cap_N, "N", gate=Fa
 V_cut = Hb + W * 0.20
 chk("Cut at lumbar: transverse shear (peg in socket)", V_cut, Acirc(TENON_RC) * 0.85 * ta, "N")
 # 5c) epoxy on the peg — only the part INSIDE the socket is a glue surface
-cap_lat = math.pi * (TENON_RC + TENON_TIP) * TENON_P
+cap_lat = math.pi * (TENON_RC + TENON_TIP) * TENON_P * 0.8   # a sideways socket's teardrop roof (~70 deg of 360) has no tight glue line
 chk("Cut at lumbar: peg epoxy shear (with glue)", F_couple / cap_lat, esh, "MPa")
 
 # 6) LENGTHWISE L/R SEAM under the seat — asymmetric sit (weight on one half)

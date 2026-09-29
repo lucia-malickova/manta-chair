@@ -139,9 +139,15 @@ TEN_CLR = 0.12
 TEN_ROOT = 3.0        # mm of each peg fused into its own part (only the rest protrudes)
 SOCK_EXTRA = 0.6      # socket this much deeper than the peg: the glue faces meet, not the tip
 WALL_MIN = 2.0        # minimum wall left around every socket (mm)
+SOCK_TIP = math.tan(math.radians(60))   # socket point: length / radius (60 deg steep)
 PEG_R_MIN, PEG_P_MIN, PEG_TIP_MIN = 3.5, 8.0, 2.0   # smallest peg worth printing (mm)
 JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM = [], [], []
+PIN_HOLES = []       # (part names, start, direction, length, radius) -> PIN_HOLES.json
 PIN_R, PIN_CLR = 5.5, 0.15                   # dia 11 crosswise pin, printed SOLID (100% infill)
+PIN_TIP_L = (PIN_R + PIN_CLR) * SOCK_TIP     # the pin hole's 60-degree pointed blind end
+# each part's print orientation (written by manta_orient.py): pin holes get a
+# teardrop roof pointing UP in the print, so no support grows inside them
+ORIENT_FILES = ["_print_ready_light/ORIENT.json", "MANTA_LIGHT/ORIENT.json"]
 PIN_POS = 0.35        # pin centre at this fraction of the peg length past the cut: close to
                       # the face so enough peg is left beyond it to not tear out
 
@@ -482,11 +488,12 @@ def _try_bool(fn, old):
     return old, False
 
 
-PIN_FLAT = 0.6    # mm flat along the pin: it prints LYING on it, layers along its length
+PIN_FLAT = 2.2    # mm flat along the pin: it prints LYING on it, layers along its length;
+                  # this deep, the round flank meets the bed at 53 deg -> no slicer support
 
 
 def _d_pin(length, start, direction):
-    """a pin with a 0.6 mm flat along its length, so it prints lying down:
+    """a pin with a flat (PIN_FLAT deep) along its length, so it prints lying down:
     its layers then run along the pin, and it is loaded in shear ACROSS the
     layers' strong direction. Printed standing, a 155 mm dia-11 rod wobbles
     and its layer lines lie exactly in the shear plane -- its weakest way."""
@@ -692,8 +699,8 @@ def build():
     lj = next((j for j in range(nseg) if cuts[j] <= _LUMB <= cuts[j + 1]), 1)
     pin_j = {0, nseg - 1, max(1, lj), min(nseg - 1, lj + 1)}
     pins = []
-    global JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM
-    JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM = [], [], []
+    global JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM, PIN_HOLES
+    JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM, PIN_HOLES = [], [], [], []
     try:
         from shapely.geometry import Polygon, Point
     except Exception:
@@ -737,7 +744,8 @@ def build():
         except Exception:
             return c0
 
-    def _fit_peg(cc, ax, r_cut, slope, P, host_root, host_sock, own_body, name, keep_out=()):
+    def _fit_peg(cc, ax, r_cut, slope, P, host_root, host_sock, own_body, name, keep_out=(),
+                 up=None):
         """shrink the peg (length P, radius r_cut at the joint plane) until:
         socket inside host_sock, root inside host_root, peg clear of own_body,
         and the socket clear of keep_out (the zone at the neighbour's OTHER
@@ -761,20 +769,32 @@ def build():
             r_end = r_cut - slope * (P + SOCK_EXTRA) + TEN_CLR
             sock = frustum(cc - ax * 0.5, ax, r_cut + slope * 0.5 + TEN_CLR,
                            r_end, P + 0.5 + SOCK_EXTRA)
-            # the socket ends in a 45-degree point (like a drilled hole), not a
-            # flat ceiling: a flat ceiling facing the bed makes the slicer grow
-            # support up INTO the socket; a 45-degree cone prints unsupported
+            # the socket ends in a point (like a drilled hole), not a flat
+            # ceiling: a flat ceiling facing the bed makes the slicer grow
+            # support up INTO the socket. The point is 60 deg steep: at 45 deg
+            # a slicer with a 45-deg overhang threshold still supports it
+            # (checked with PrusaSlicer, manta_slicer_check.py)
             end = cc + ax * (P + SOCK_EXTRA)
-            cap = cq.Solid.makeCone(r_end, 0.0, r_end, Vector(*end), Vector(*ax))
-            sock = big(sock.fuse(cap))
-            # the socket PLUS a 2 mm wall all round it must lie inside the
-            # neighbour -- not just the hole itself (no paper-thin skin)
-            probe = frustum(cc + ax * 0.3, ax, r_cut + TEN_CLR + WALL_MIN,
-                            r_end + WALL_MIN, P + SOCK_EXTRA - 0.3)
-            probe_cap = cq.Solid.makeCone(r_end + WALL_MIN, 0.0, r_end + WALL_MIN,
-                                          Vector(*end), Vector(*ax))
-            f_sock = min(sum(_inside(h, probe) for h in host_sock),
-                         sum(_inside(h, probe_cap) for h in host_sock))
+            if up is None:
+                cap = cq.Solid.makeCone(r_end, 0.0, r_end * SOCK_TIP, Vector(*end), Vector(*ax))
+                sock = big(sock.fuse(cap))
+                # the socket PLUS a 2 mm wall all round it must lie inside the
+                # neighbour -- not just the hole itself (no paper-thin skin)
+                probe = frustum(cc + ax * 0.3, ax, r_cut + TEN_CLR + WALL_MIN,
+                                r_end + WALL_MIN, P + SOCK_EXTRA - 0.3)
+                r_pc = r_end + WALL_MIN / math.cos(math.atan(1.0 / SOCK_TIP))   # cone offset by WALL_MIN
+                probe_cap = cq.Solid.makeCone(r_pc, 0.0, r_pc * SOCK_TIP, Vector(*end), Vector(*ax))
+                f_sock = min(sum(_inside(h, probe) for h in host_sock),
+                             sum(_inside(h, probe_cap) for h in host_sock))
+            else:
+                # the socket part's print orientation is known (ORIENT.json):
+                # a tapered TEARDROP, roof up, a tent where the end faces up --
+                # no support inside it however the socket lies in the print
+                sock = big(_td.socket_void(cc - ax * 0.5, ax, r_cut + slope * 0.5 + TEN_CLR,
+                                           r_end, P + 0.5 + SOCK_EXTRA, up))
+                probe = _td.socket_void(cc + ax * 0.3, ax, r_cut + TEN_CLR + WALL_MIN,
+                                        r_end + WALL_MIN, P + SOCK_EXTRA - 0.3, up)
+                f_sock = sum(_inside(h, probe) for h in host_sock)
             f_root = sum(_inside(h, root) for h in host_root)
             f_own = sum(_inside(h, prot) for h in own_body)
             f_keep = sum(_inside(k, sock) for k in keep_out)
@@ -785,6 +805,12 @@ def build():
             r_cut *= 0.92
         why = (f"socket {f_sock:.2f}, root {f_root:.2f}, self {f_own:.2f}, far-end {f_keep:.3f}")
         return peg, sock, r_cut, P, ok, why
+
+    import manta_teardrop as _td
+    ups = {}
+    for _f in ORIENT_FILES:
+        ups = ups or _td.load_ups(_f)
+    _tg = {-1: "L", 1: "R", 0: ""}
 
     pin_joints = {}
     for c in range(1, nseg):                     # cut between seg c-1 and seg c
@@ -825,7 +851,8 @@ def build():
             peg, sock, r_cut, P, ok, why = _fit_peg(
                 cc, ne, r_cut, slope, TEN_L * 0.5,
                 host_root=[A[sda]], host_sock=[raw[c][kb_t]],
-                own_body=[raw[c - 1][sda]], name=name, keep_out=keep)
+                own_body=[raw[c - 1][sda]], name=name, keep_out=keep,
+                up=ups.get(f"SEG_{c:02d}{_tg[kb_t]}"))
             if ok and want_pin and (r_cut < (TEN_R + TEN_TIP) / 2 - 0.05
                                     or P < TEN_L * 0.5 - 0.05):
                 BUILD_PROBLEMS.append(f"{name}: load-path peg had to shrink (r {r_cut:.1f}, "
@@ -857,14 +884,16 @@ def build():
             if want_pin:                     # pins are laid out after the loop
                 pin_joints.setdefault(c, []).append((cc + ne * (P * PIN_POS), sda, r_cut))
 
-    # 2b) PINS at the load-path joints. One straight hole per joint, on the
-    #     line through BOTH halves' pegs (it crosses each peg), drilled in from
-    #     each side face and STOPPING 0.5 mm short of the centre seam -- so
-    #     each pin slides in until it bottoms out, the seam's glue face stays
-    #     whole, and nothing sticks out. (An earlier version gave each half a
-    #     150 mm pin centred on its own peg: two pins stuck 12-18 mm out of the
-    #     chair's side and two others met in the same hole at the seam.)
-    #     All four pins share one length, long enough to pass every peg.
+    # 2b) PINS at the load-path joints. One straight line per joint through
+    #     BOTH halves' pegs (it crosses each peg); from each side face a blind
+    #     hole runs in along it and STOPS short of the centre seam -- so each
+    #     pin slides in until it bottoms out, 1 mm below the side face, the
+    #     seam's glue face stays whole, and nothing sticks out. (An earlier
+    #     version gave each half a 150 mm pin centred on its own peg: two pins
+    #     stuck 12-18 mm out of the chair's side and two others met in the same
+    #     hole at the seam.) All four pins share one length -- as long as the
+    #     shortest hole allows -- and each hole's stop is set so its pin still
+    #     crosses the whole peg.
     pin_plan = []
     for c, pl in sorted(pin_joints.items()):
         if len(pl) != 2:
@@ -887,28 +916,44 @@ def build():
                 continue
             sgn = 1.0 if float((pp - o) @ axis) > t_seam else -1.0   # outward along the axis
             t_out = max(ts) if sgn > 0 else min(ts)
-            t_stop = t_seam + sgn * 0.5
-            avail = abs(t_out - t_stop) - 1.0
-            t_peg = float((pp - o) @ axis)
-            need = abs(t_peg - t_stop) + r_peg + 8.0
-            pin_plan.append((c, sd, o, axis, sgn, t_stop, t_out, avail, need))
+            # the hole has NO blind end: past the pin's stop it tapers over
+            # NECK_L into a narrow neck that runs out through the seam face --
+            # no ceiling for a slicer to prop up, nothing that can poke out
+            tag = {-1: "L", 1: "R", 0: ""}[sd]
+            part_ups = [ups.get(f"SEG_{k:02d}{tag}") for k in (c - 1, c)]
+            d_side = abs(t_out - t_seam)                   # seam -> side face along the line
+            d_peg = abs(float((pp - o) @ axis) - t_seam)   # seam -> peg centre
+            pin_plan.append((c, sd, o, axis, sgn, t_seam, d_side, _td.NECK_L + 1.0, d_peg, r_peg, part_ups))
     if pin_plan:
-        pin_len = min(p[7] for p in pin_plan)
-        pin_len = min(pin_len, 200.0)
-        if pin_len < max(p[8] for p in pin_plan):
-            BUILD_PROBLEMS.append(f"pins: no single length fits every pin hole "
-                                  f"(max {pin_len:.0f} mm, need {max(p[8] for p in pin_plan):.0f})")
-        for c, sd, o, axis, sgn, t_stop, t_out, avail, need in pin_plan:
+        pin_len = min(min(p[6] - 1.0 - p[7] for p in pin_plan), 200.0)
+        for c, sd, o, axis, sgn, t_seam, d_side, d_lo, d_peg, r_peg, part_ups in pin_plan:
+            # the pin's inner end (from the seam): as far out as leaves it 1 mm
+            # below the side face, but never past the peg's near side -- then it
+            # sits deeper and the hole's mouth stays open above it
+            d_stop = min(d_side - 1.0 - pin_len, d_peg - r_peg - 2.0)
+            if d_stop < d_lo or d_stop + pin_len < d_peg + r_peg + 8.0:
+                BUILD_PROBLEMS.append(f"cut {c} side {sd}: a {pin_len:.0f} mm pin can't cross "
+                                      f"the whole peg (stop {d_stop:.0f} mm, peg {d_peg:.0f} +- {r_peg:.0f})")
+            t_stop = t_seam + sgn * d_stop
             start = o + axis * t_stop
-            hole_len = abs(t_out - t_stop) + 6.0                    # open at the side face
-            hole = cq.Solid.makeCylinder(PIN_R + PIN_CLR, hole_len, Vector(*start), Vector(*(axis * sgn)))
-            for grp in (seg[c - 1], seg[c]):
+            hole_len = d_side - d_stop + 6.0                        # open at the side face
+            for grp, u in zip((seg[c - 1], seg[c]), part_ups):
                 if grp.get(sd) is not None:
-                    try: grp[sd] = _checked(big(grp[sd].cut(hole)), grp[sd], f"cut {c} pin hole")
-                    except Exception: BUILD_PROBLEMS.append(f"cut {c}: pin hole failed")
+                    try:
+                        hole = _td.pin_hole_neck(start, axis * sgn, hole_len, PIN_R + PIN_CLR,
+                                                 up=u, neck_to_seam=d_stop)
+                        grp[sd] = _checked(big(grp[sd].cut(hole)), grp[sd], f"cut {c} pin hole")
+                    except Exception:
+                        BUILD_PROBLEMS.append(f"cut {c}: pin hole failed")
             pins.append(_d_pin(pin_len, start, axis * sgn))
-            JOINT_REPORT.append((f"pin cut {c} side {sd}: {pin_len:.0f} mm, "
-                                 f"recessed {avail + 1.0 - pin_len:.0f} mm from the side face", 0.0, 0.0, True))
+            PIN_HOLES.append({"parts": [f"SEG_{k:02d}{tag}" for k in (c - 1, c)
+                                        for tag in [{-1: "L", 1: "R", 0: ""}[sd]]],
+                              "start": [float(v) for v in start],
+                              "dir": [float(v) for v in axis * sgn],
+                              "length": float(hole_len), "r": PIN_R + PIN_CLR})
+            JOINT_REPORT.append((f"pin cut {c} side {sd}: {pin_len:.0f} mm, stops {d_stop:.0f} mm "
+                                 f"from the seam, {d_side - d_stop - pin_len:.0f} mm below the side face",
+                                 0.0, 0.0, True))
 
     # 3) lengthwise (L/R) tenon on the seam -- only where the two halves'
     #    seam faces actually coincide (no fork splay anywhere on the segment).
@@ -943,7 +988,7 @@ def build():
         peg, sock, r_seam, P, ok, why = _fit_peg(
             cs, w, r_seam, lslope, LTEN_L * 0.5,
             host_root=[seg[k][-1]], host_sock=[seg[k][1]],
-            own_body=[raw[k][-1]], name=name)
+            own_body=[raw[k][-1]], name=name, up=ups.get(f"SEG_{k:02d}R"))
         if not ok:
             JOINT_REPORT.append((name + " -> glued face only, no room for a peg", 0.0, 0.0, True))
             continue
@@ -1090,6 +1135,9 @@ def main():
                         tolerance=STL_TOL, angularTolerance=STL_ANG)
 
     nvert = sum(1 for _, v in legend if v)
+    import json
+    with open(f"{OUT}/PIN_HOLES.json", "w", encoding="utf-8") as fh:
+        json.dump(PIN_HOLES, fh, indent=1)      # manta_orient.py: pin holes are teardrops
     with open(f"{OUT}/PARTS_LIST.txt", "w", encoding="utf-8") as fh:
         fh.write(f"BOARD LEGEND  ({len(legend)} items, limit 49)\n")
         for i, (nm, v) in enumerate(legend, 1):

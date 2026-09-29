@@ -75,9 +75,9 @@ def socket_half():
     s = cq.Solid.makeCone(TEN_R + CLR, TEN_TIP + CLR - (TEN_R - TEN_TIP) / TEN_L * st.SOCK_EXTRA,
                           TEN_L + st.SOCK_EXTRA, Vector(0, 0, 0), Vector(0, 1, 0))
     b = max(b.cut(s).Solids(), key=lambda s: abs(s.Volume()))
-    # 45-degree pointed end, same as the chair's sockets (prints without support)
+    # 60-degree pointed end, same as the chair's sockets (prints without support)
     r_end = TEN_TIP + CLR - (TEN_R - TEN_TIP) / TEN_L * st.SOCK_EXTRA
-    cap = cq.Solid.makeCone(r_end, 0.0, r_end, Vector(0, TEN_L + st.SOCK_EXTRA, 0), Vector(0, 1, 0))
+    cap = cq.Solid.makeCone(r_end, 0.0, r_end * st.SOCK_TIP, Vector(0, TEN_L + st.SOCK_EXTRA, 0), Vector(0, 1, 0))
     b = max(b.cut(cap).Solids(), key=lambda s: abs(s.Volume()))
     # hole THROUGH THE SOCKET, PIN_INTO from the cut plane (mouth = y=0)
     h = cq.Solid.makeCylinder(PIN_R + PIN_CLR, W + 20,

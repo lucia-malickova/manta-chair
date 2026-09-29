@@ -38,6 +38,7 @@ RUN:  python manta_orient.py <folder> <generator_module>
 """
 import glob
 import importlib
+import json
 import os
 import re
 import sys
@@ -227,26 +228,77 @@ def segment_cut_tangents(fname, gen):
     return mid, [t_start, t_end]
 
 
-SUPPORT_ANGLE = 50.0   # a slicer supports surfaces overhanging more than this from vertical
-SUPPORT_FREE = 6.0     # cm2 -- below this it's only the socket's small ceiling, which bridges
+SUPPORT_ANGLE = 43.0   # a slicer supports surfaces overhanging more than this from vertical
+                       # (PrusaSlicer threshold 45 deg from horizontal = 45 from vertical, minus 2 deg margin)
+SUPPORT_FREE = 1.0     # cm2 -- stray facets; the real slicer decides (manta_slicer_check.py)
+HOLE_WEIGHT = 100.0    # support INSIDE a socket can't be pulled out: weigh it this much more
+HOLE_REACH = 30.0      # mm -- a face that looks at the opposite wall this close is inside a hole
+BED = (250.0, 220.0, 270.0)   # Prusa CORE One build volume, mm
+BED_MARGIN = 3.0
 
 
-def support_area(mesh, R):
-    """cm2 of surface a slicer would want to support in orientation R: faces
-    overhanging more than SUPPORT_ANGLE from vertical, not lying on the bed.
-    (An earlier version minimised an overhang PERCENTAGE and the docs claimed
-    "no supports" -- never measured; ~20 of 42 parts really need some.)"""
+def hole_faces(mesh, pin_holes=()):
+    """faces lining a hole (peg socket, pin hole): looking out along the
+    face's own normal, the ray meets the part's opposite wall within
+    HOLE_REACH. Support grown there is trapped inside the hole.
+    `pin_holes` (from the generator's PIN_HOLES.json, model coordinates):
+    those holes are left out -- the generator gives them a teardrop roof for
+    whatever orientation is chosen, so they must not steer the choice."""
+    c = mesh.triangles_center + mesh.face_normals * 0.05
+    hit = np.zeros(len(c), dtype=bool)
+    loc, idx, _ = mesh.ray.intersects_location(c, mesh.face_normals, multiple_hits=False)
+    if len(idx):
+        hit[idx[np.linalg.norm(loc - c[idx], axis=1) < HOLE_REACH]] = True
+    for ph in pin_holes:
+        s0, d = np.array(ph["start"]), np.array(ph["dir"])
+        t = np.clip((mesh.triangles_center - s0) @ d, -60.0, ph["length"])   # incl. the neck
+        dist = np.linalg.norm(mesh.triangles_center - (s0 + np.outer(t, d)), axis=1)
+        hit &= ~(dist < 1.8 * ph["r"] + 0.5)
+    return hit
+
+
+def support_area(mesh, R, holes=None):
+    """(outside, inside-hole) cm2 of surface a slicer would want to support
+    in orientation R: faces overhanging more than SUPPORT_ANGLE from
+    vertical, not lying on the bed."""
     n = mesh.face_normals @ R.T
     zc = (mesh.triangles_center @ R.T)[:, 2]
     steep = (-n[:, 2] > np.cos(np.radians(90.0 - SUPPORT_ANGLE))) & (zc > zc.min() + 0.6)
-    return float(mesh.area_faces[steep].sum() / 100.0)
+    if holes is None:
+        holes = np.zeros(len(n), dtype=bool)
+    return (float(mesh.area_faces[steep & ~holes].sum() / 100.0),
+            float(mesh.area_faces[steep & holes].sum() / 100.0))
+
+
+def bed_turn(mesh, R):
+    """angle (deg) to turn the part about Z so it fits the build volume after
+    rotation R, or None if it fits no way round."""
+    v = mesh.convex_hull.vertices @ R.T
+    if np.ptp(v[:, 2]) > BED[2] - BED_MARGIN:
+        return None
+    xy = v[:, :2]
+    for a in range(0, 180, 2):
+        t = np.radians(a)
+        e = np.ptp(xy @ np.array([[np.cos(t), np.sin(t)], [-np.sin(t), np.cos(t)]]), axis=0)
+        if e[0] <= BED[0] - 2 * BED_MARGIN and e[1] <= BED[1] - 2 * BED_MARGIN:
+            return float(a)
+    return None
+
+
+def rot_z(deg):
+    t = np.radians(deg)
+    return np.array([[np.cos(t), -np.sin(t), 0.0], [np.sin(t), np.cos(t), 0.0], [0.0, 0.0, 1.0]])
 
 
 def best_support_orientation(mesh, cut_faces=(), priority_dirs=(), n=400,
-                             min_footprint_mm2=400.0):
-    """The orientation with the LEAST support area among those that stand on
-    a solid footprint. A sideways peg is counted automatically (its underside
-    is overhang). Ties (within 0.5 cm2) go to resting on a real cut face."""
+                             min_footprint_mm2=400.0, pin_holes=()):
+    """The orientation with the LEAST support among those that stand on a
+    solid footprint AND fit the printer's build volume. Support inside a hole
+    counts HOLE_WEIGHT times (it can't be removed); a sideways peg is counted
+    automatically (its underside is overhang). Ties (within 0.5 cm2) go to
+    resting on a real cut face. Returns (outside cm2, hole cm2, R, footprint),
+    R already including the turn about Z that makes it fit the bed."""
+    holes = hole_faces(mesh, pin_holes)
     cands = []
     for fn in cut_faces:
         for d in (fn, -fn):
@@ -255,51 +307,75 @@ def best_support_orientation(mesh, cut_faces=(), priority_dirs=(), n=400,
         cands.append((np.asarray(d, float), False))
     for _, fn, _ in flat_face_normals(mesh):
         cands.append((fn, False)); cands.append((-fn, False))
-    best = None
+    scored = []
     for d, is_cut in cands:
         R = rot_to_z(d)
         fp = base_footprint(mesh, R)
         if fp < min_footprint_mm2:
             continue
-        sa = support_area(mesh, R)
-        key = (round(sa * 2) / 2, 0 if is_cut else 1)
-        if best is None or key < best[0]:
-            best = (key, sa, R, fp)
-    if best is None:                        # nothing stands well: fall back
-        pct, R, fp = best_orientation(mesh, cut_faces=cut_faces, priority_dirs=priority_dirs)
-        return support_area(mesh, R), R, fp
-    return best[1], best[2], best[3]
+        sa, sh = support_area(mesh, R, holes)
+        scored.append(((round((sa + HOLE_WEIGHT * sh) * 2) / 2, 0 if is_cut else 1), sa, sh, R, fp))
+    scored.sort(key=lambda c: c[0])
+    for key, sa, sh, R, fp in scored:       # best first; the first that fits the bed wins
+        turn = bed_turn(mesh, R)
+        if turn is not None:
+            return sa, sh, rot_z(turn) @ R, fp
+    raise RuntimeError("no orientation stands on a solid base AND fits the build volume")
 
 
-def main(folder, gen_name="manta_ribbon"):
+def main(folder, gen_name="manta_ribbon", reuse=False):
+    """reuse=True: apply the rotations saved in ORIENT.json instead of
+    searching -- the generator has shaped the pin holes' roofs for exactly
+    those rotations (manta_teardrop.py)."""
     gen = importlib.import_module(gen_name)
     files = sorted(glob.glob(f"{folder}/*.stl"))
-    print(f"\nMANTA — orienting {len(files)} parts in {folder}/ for the least support\n")
-    print(f"{'PART':16s}{'support cm2':>12s}{'footprint':>12s}")
+    orient_path = os.path.join(folder, "ORIENT.json")
+    saved = json.load(open(orient_path, encoding="utf-8")) if reuse else {}
+    ph_path = os.path.join(gen.OUT, "PIN_HOLES.json")
+    pin_holes = json.load(open(ph_path, encoding="utf-8")) if os.path.exists(ph_path) else []
+    print(f"\nMANTA — orienting {len(files)} parts in {folder}/ for the least support"
+          f"{' (saved rotations)' if reuse else ''}\n")
+    print(f"{'PART':16s}{'support cm2':>12s}{'in holes':>10s}{'footprint':>12s}")
     report = []
+    rotations = {}
     for f in files:
         m = trimesh.load(f)
-        mid, exact_tangents = segment_cut_tangents(f, gen)
-        cut_faces = real_cut_faces(m, exact_tangents) if exact_tangents else []
-        pri = [mid] if mid is not None else []
-        sa, R, fp = best_support_orientation(m, cut_faces=cut_faces, priority_dirs=pri)
+        key = re.sub(r"^\d+_", "", os.path.basename(f))[:-4]
+        mine = [ph for ph in pin_holes if key in ph["parts"]]
+        if reuse and key in saved:
+            R = np.array(saved[key])
+            sa, sh = support_area(m, R, hole_faces(m, mine))
+            fp = base_footprint(m, R)
+        else:
+            mid, exact_tangents = segment_cut_tangents(f, gen)
+            cut_faces = real_cut_faces(m, exact_tangents) if exact_tangents else []
+            pri = [mid] if mid is not None else []
+            sa, sh, R, fp = best_support_orientation(m, cut_faces=cut_faces, priority_dirs=pri,
+                                                     pin_holes=mine)
+        rotations[key] = R.tolist()
         T = np.eye(4); T[:3, :3] = R
         m.apply_transform(T)
-        m.apply_translation((0, 0, -m.bounds[0][2]))  # drop to the bed
+        lo, hi = m.bounds
+        # drop to the bed and centre on it
+        m.apply_translation((BED[0] / 2 - (lo[0] + hi[0]) / 2, BED[1] / 2 - (lo[1] + hi[1]) / 2, -lo[2]))
         m.export(f)
         report.append((os.path.basename(f), sa, fp))
-        tag = "" if sa <= SUPPORT_FREE else "   needs support"
-        print(f"{os.path.basename(f):16s}{sa:12.1f}{fp:10.0f}mm2{tag}")
+        tag = "" if sa + sh <= SUPPORT_FREE else "   needs support"
+        if sh > 0.05:
+            tag += "  !! some inside a hole"
+        print(f"{os.path.basename(f):16s}{sa:12.1f}{sh:10.1f}{fp:10.0f}mm2{tag}")
     free = sum(1 for _, sa, _ in report if sa <= SUPPORT_FREE)
+    with open(orient_path, "w", encoding="utf-8") as fh:
+        json.dump(rotations, fh, indent=1)
     with open(os.path.join(folder, "SUPPORT_REPORT.txt"), "w", encoding="utf-8") as fh:
         for nm, sa, fp in report:
             fh.write(f"{nm}\t{sa:.1f}\t{fp:.0f}\n")
     print(f"\ndone — {free} of {len(report)} parts print with no support "
-          f"(<= {SUPPORT_FREE:.0f} cm2 = just the socket ceiling, which bridges); "
+          f"(<= {SUPPORT_FREE:.0f} cm2 of stray facets; confirm with manta_slicer_check.py); "
           f"the rest need some support from the build plate.\n")
 
 
 if __name__ == "__main__":
     folder = sys.argv[1] if len(sys.argv) > 1 else "MANTA_RIBBON"
     gen_name = sys.argv[2] if len(sys.argv) > 2 else "manta_ribbon"
-    main(folder, gen_name)
+    main(folder, gen_name, reuse="--reuse" in sys.argv)

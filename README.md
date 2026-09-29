@@ -37,6 +37,8 @@ renders / board / poster / PDF.
 | # | command | what it does | output |
 |---|---|---|---|
 | 1 | `python manta_ribbon.py` | **generator** — builds the ribbon, **slices it**, adds tenons + pins, exports the parts and the assembled chair | `MANTA_RIBBON/` |
+| 1b | `python manta_print_ready.py manta_ribbon MANTA_RIBBON _print_ready_competition` | **print files**: generator -> least-support orientation that fits the bed (`manta_orient.py`, writes `ORIENT.json`) -> generator again, pin holes turned into teardrops pointing up for exactly those orientations -> same orientations applied | numbered, pre-rotated STLs |
+| 1c | `python manta_slicer_check.py <folder>` | slices every part in **PrusaSlicer** (your own profile) and reports the support it really generates, and whether any of it is inside a hole | `SLICER_REPORT.txt` |
 | 2 | `python manta_apply_template.py` | embeds the chair + numbered parts into the **official, unmodified** `3D_Template.stl` (chair centred in its 800x800mm footprint box, each part in its numbered 220x220x250mm cell) | overwrites `MANTA_RIBBON/MANTA_Chair.stl` + `MANTA_Assembly.stl` |
 | 3 | `python manta_strength_check.py` | **strength + stability check** (first-order, pure math, live from the tables — also run automatically by step 1) | printed to the console |
 | 4 | `python manta_ergonomics_check.py` | **ergonomics check** — 8 seat/backrest dimensions vs seating reference ranges | printed to the console |
@@ -83,25 +85,31 @@ same numbering.
 **Every file in `MANTA_RIBBON/` and `MANTA_LIGHT/` is pre-rotated to the
 orientation that needs the least support** — import and print as-is.
 
-Honest numbers: a curved, fluted ribbon segment can't always be printed
-with zero support. `manta_orient.py` tries ~400 orientations per part and
-keeps the one with the smallest area a slicer would support (surfaces
-overhanging more than 50° from vertical, not on the bed), among those that
-stand on a solid base (>= 400 mm² footprint). A sideways peg counts as
-overhang too, so it is avoided automatically. Result: **29 of the 42
-competition parts (28 of 42 in `MANTA_LIGHT`) need no support at all** —
-the few cm² that remain are the small ceiling of the peg socket, which the
-printer bridges. The rest need a modest support from the build plate
-(largest: the foot-tip prongs, 40–65 cm²). `SUPPORT_REPORT.txt` and
-`PARTS_LIST.txt` in each folder list which parts need it.
+Honest numbers, **measured in PrusaSlicer** (`manta_slicer_check.py`
+slices every file and reads the G-code back): a curved, fluted ribbon
+segment can't always be printed with zero support, but it is **almost
+support-free — under 1 % of the filament is support** (competition: 114 g
+of 16.8 kg; `MANTA_LIGHT`: 83 g of 9.0 kg), all of it from the build plate,
+most parts only a few grams. `manta_orient.py` tries ~400 orientations per
+part and keeps the one that fits the Prusa CORE One's 250 x 220 x 270 mm
+volume, stands on a solid base (>= 400 mm² footprint) and needs the least
+support, with support inside a hole weighted 100x.
 
-In the slicer use **"Support on build plate only"**, never "Everywhere":
-"Everywhere" also fills the peg sockets and pin holes with supports that
-are hard to pull out of a deep narrow cone. Every peg socket ends in a
-45° point (like a drilled hole), so it prints without support inside
-whichever way it faces — no support blockers needed. (An earlier version of these
-docs claimed "no supports" for every part; that was never measured and was
-not true.)
+**Nothing grows inside the holes**, because each hole is shaped for the
+way its part lies (`manta_teardrop.py`): a socket lying sideways gets a
+teardrop roof pointing up, a socket end facing up is pointed (every
+surface >= 60°), and the pin holes have no blind end at all — past the
+pin's stop they narrow into a channel that runs out through the centre
+seam. The one exception PrusaSlicer still shows is a ~0.3 g thin branch up
+the pin channel of part 14; the channel is open at both ends, push it out
+with a rod. `PARTS_LIST.txt` and `SLICER_REPORT.txt` in each folder list
+the support per part.
+
+In the slicer use **"Support on build plate only"** with an overhang
+threshold of 45° or lower, never "Everywhere". (Earlier versions of these
+docs claimed "no supports", then "29 of 42 parts need none"; neither was
+checked in a real slicer, and the 45° socket points of that version still
+got support inside them at a 45° threshold.)
 
 ---
 
@@ -141,7 +149,7 @@ applied. With 15% infill the glue faces are only as good as their solid
 skin: use at least 6 top / 5 bottom solid layers and only scuff them with
 P120, don't sand through. Pins still at 100% infill. `MANTA_LIGHT/` is the
 already-generated, numbered result: same 42 parts, same joints, about half
-the filament (**7.7 kg vs 16.2 kg**, `manta_material_personal.py` for the
+the filament (**9.0 kg vs 16.8 kg** in PrusaSlicer, ~160 h vs ~470 h; `manta_material_personal.py` for the
 cost at your own filament price). Load-test it before sitting on it
 (30 -> 50 -> 70 kg, each overnight). A demonstration variant, not the
 competition entry — the competition files are untouched.
@@ -162,19 +170,23 @@ The joint is **not "just a pin."** In order of importance:
    perpendicular to the ribbon's axis, so you're gluing two flat faces of
    solid material against each other — 6,600–17,000 mm² of epoxy per joint.
    This is the main strength. (Margin in the strength check: **~26x**; the
-   epoxy on the peg **4.3x**; weakest glued check **2.1x** — see
+   epoxy on the peg **3.5x**, counting only 80 % of its side because a
+   sideways socket has a teardrop roof; weakest glued check **2.1x** — see
    `manta_strength_check.py`.)
 2. **A conical peg (dia 27 at the face, 22 mm long)** at the centre of the
    cut — self-centring, it aligns the joint and carries shear. Only 3 mm of
    it is fused into its own part; the rest sits in the neighbour's socket
-   (0.6 mm deeper than the peg, so the glue faces meet, not the tip).
-3. **Dia 11 x 155 mm pins, printed SOLID (100% infill) and lying on
-   their 0.6 mm flat** (so the layers run along the pin) — ONLY at the 2
-   joints beside the lumbar, two per joint. One straight hole per joint runs
-   through both halves' pegs, drilled in from each side face and stopping
-   0.5 mm short of the centre seam: slide each pin in until it stops. No
-   pin sticks out; at one joint the hole stays open ~39 mm on the side face
-   (fill it with a dab of epoxy if you like). A cone in a cone slides straight out, so without glue
+   (0.6 mm deeper than the peg, so the glue faces meet, not the tip; the
+   socket's pointed end stays empty and takes the surplus glue and air).
+3. **Dia 11 x 133 mm pins, printed SOLID (100% infill) and lying on
+   their 2.2 mm flat** (so the layers run along the pin) — ONLY at the 2
+   joints beside the lumbar, two per joint. One straight line per joint runs
+   through both halves' pegs; from each side face a hole runs in along it,
+   narrows in a long taper (the pin's stop) and continues as a dia 7 channel
+   out through the centre seam — no blind end, so nothing inside it needs
+   support. Slide each pin in until it stops. No pin sticks out; in three
+   holes it ends 1 mm below the surface, in one ~27 mm below (the peg there
+   sits deeper) — fill that mouth with epoxy. A cone in a cone slides straight out, so without glue
    the pin is the only thing holding it: the backup is peg root -> peg ->
    pin in *series*, and its capacity is the weakest of those. With the pin
    placed close to the face it comes to **0.9x** of the full design load
@@ -188,11 +200,9 @@ stick out of its own part, every socket must be closed inside ONE part
 with at least 2 mm of wall around it, pins may only sit in holes, and no
 two neighbouring parts may overlap. Where a whole piece meets a split L/R
 pair (and vice versa) the whole piece carries two pegs, one per half, so no
-socket is split across the seam. In the competition geometry every joint
-gets a peg; in the thinner `MANTA_LIGHT` backrest two joints on the right
-half (cuts 13 and 14) are too thin for a peg with a 2 mm wall — they are
-joined on the glued face only (the left half and the seam pegs keep them
-aligned), and the generator prints them in its report.
+socket is split across the seam. Every joint gets a peg in both variants;
+where the part is thin the generator shortens the peg rather than leave less
+than 2 mm of wall (it lists those in its report).
 
 **Assembly order matters:** glue each L+R pair of a segment together
 FIRST (their seam peg runs sideways, along that segment's own twisted
@@ -215,7 +225,11 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `manta_stl_fit_check.py` — measures the peg/socket clearance left in the exported print STLs
 - `manta_joint_check.py` — virtual assembly: every peg seats in its neighbour, nothing sticks out or overlaps
 - `manta_uniqueness_check.py` — proves no two of the 41 segments are geometrically identical
-- `manta_orient.py` — rotates each part to the orientation needing the least support (solid base kept)
+- `manta_orient.py` — rotates each part to the orientation needing the least support that fits the bed (solid base kept); writes `ORIENT.json`
+- `manta_teardrop.py` — shapes sockets and pin holes for that orientation (teardrop roofs, pointed ends, pin channels) so nothing inside them needs support
+- `manta_print_ready.py` — runs generator -> orient -> generator -> orient in the right order for one variant
+- `manta_slicer_check.py` — slices every part in PrusaSlicer and reports the support it really adds (and any inside a hole), filament and print time
+- `manta_print_list.py` — writes the numbered `PARTS_LIST.txt` with the slicer's per-part support
 - `manta_joint_test.py` — physical joint test
 - `manta_material.py` — filament use + cost from the real STL parts
 - the remaining `manta_*.py` files = rendering / submission packaging

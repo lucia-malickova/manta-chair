@@ -30,10 +30,11 @@ Each rule sets the section, and each carries load:
 
 ## Printing
 
-41 segments, each within 212 × 220 × 250 mm, auto-oriented for the least
-support: over half print with **none**, the rest need a little, from the
-build plate only. PETG, 0.2 mm layers, 5 perimeters, 35 % gyroid,
-solid pins. ~16 kg, ~180 h of printing, ~90 € of filament.
+41 segments (each ≤ 212 × 220 × 250 mm), auto-oriented for the least
+support: **almost support-free**, under 1 % of the filament (PrusaSlicer),
+none inside the holes — each is shaped for the way its part lies. PETG,
+0.2 mm layers, 5 perimeters, 35 % gyroid, solid pins. ~17 kg, ~470 h on
+one printer, ~90 €.
 
 ## Assembly — computed joints, no screws
 
@@ -56,7 +57,7 @@ weakest glued check 2.1×; with no glue at all, peg and pin still carry
 
 ## Open design — nothing repeats
 
-Nothing in nature repeats, so no two parts of this chair do either: all 41
-segments are geometrically unique (script-verified, no duplicates). Change
+Nothing in nature repeats, so no two parts here do either: all 41
+segments are geometrically unique (script-verified). Change
 the tables and the same script regenerates a leaner chair, joints and
 load checks included; a 70 kg, half-filament variant is in the repo (anonymised source link below).

@@ -63,7 +63,7 @@ def section_header(title):
 
 def stat_strip():
     stats = [("~250 kg", "safe static load"), ("26×", "glued full-section joint"),
-             ("~16 kg", "finished weight"), ("~90 €", "filament cost")]
+             ("~17 kg", "finished weight"), ("~90 €", "filament cost")]
     cells = [[Paragraph(big, STAT_BIG)] for big, _ in stats]
     lbls = [[Paragraph(lbl, STAT_LBL)] for _, lbl in stats]
     t = Table([[c[0] for c in cells], [l[0] for l in lbls]], colWidths=[42.5 * mm] * 4)

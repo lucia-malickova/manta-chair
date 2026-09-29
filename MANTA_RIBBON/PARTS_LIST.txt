@@ -2,8 +2,11 @@ MANTA — numbered, pre-oriented printable parts (matches Board key)
 
 Each file is pre-rotated to the orientation needing the LEAST support, on a solid
 base (python manta_orient.py) — import and print as-is. Slicer: "Support on build
-plate only" (never "Everywhere"). Every peg socket ends in a 45° point, so it
-prints without support inside, whichever way it faces.
+plate only" (never "Everywhere"), overhang threshold 45° or lower. Every hole is
+shaped for the way its part lies: sockets that lie sideways have a teardrop roof,
+ends that face up are pointed, pin holes run on through the seam as a narrow
+channel -- so no support grows inside them (checked in PrusaSlicer).
+Pins: 100 % infill, lying on their flat.
 Every peg sits in a socket closed inside ONE neighbour part with >= 2 mm wall
 (python manta_joint_check.py); >= 0.06 mm clearance survives in these STL files
 (python manta_stl_fit_check.py). Each part number is ENGRAVED on a glue face.
@@ -11,50 +14,54 @@ ASSEMBLY: glue each L+R pair first, then join segments. Print both halves of a
 segment from the SAME version of the files.
 
 
+Support tags below = what PrusaSlicer, profile: 0.28mm DRAFT @COREONE HF0.4 - Copy / Prusa CORE One HF0.4 nozzle / Prusament PETG @COREONE HF0.4 + layer_height = 0.2;perimeters = 5;fill_density = 35% actually generates.
+
 BOARD LEGEND  (42 items, limit 49)
- 1. SEG_00L      1x   SUPPORT from build plate (~71 cm2)
- 2. SEG_00R      1x   no support
- 3. SEG_01L      1x   SUPPORT from build plate (~8 cm2)
- 4. SEG_01R      1x   no support
- 5. SEG_02L      1x   no support
- 6. SEG_02R      1x   no support
- 7. SEG_03L      1x   SUPPORT from build plate (~16 cm2)
- 8. SEG_03R      1x   SUPPORT from build plate (~22 cm2)
- 9. SEG_04L      1x   no support
+ 1. SEG_00L      1x   SUPPORT from build plate (~8 g)
+ 2. SEG_00R      1x   SUPPORT from build plate (~5 g)
+ 3. SEG_01L      1x   SUPPORT from build plate (~3 g)
+ 4. SEG_01R      1x   SUPPORT from build plate (~3 g)
+ 5. SEG_02L      1x   a few specks of support from the build plate (< 1 g)
+ 6. SEG_02R      1x   SUPPORT from build plate (~12 g)
+ 7. SEG_03L      1x   SUPPORT from build plate (~20 g)
+ 8. SEG_03R      1x   SUPPORT from build plate (~10 g)
+ 9. SEG_04L      1x   a few specks of support from the build plate (< 1 g)
 10. SEG_04R      1x   no support
-11. SEG_05L      1x   no support
+11. SEG_05L      1x   SUPPORT from build plate (~1 g)
 12. SEG_05R      1x   no support
-13. SEG_06L      1x   SUPPORT from build plate (~64 cm2)
-14. SEG_06R      1x   SUPPORT from build plate (~32 cm2)
-15. SEG_07L      1x   SUPPORT from build plate (~12 cm2)
-16. SEG_07R      1x   SUPPORT from build plate (~13 cm2)
-17. SEG_08L      1x   no support
+13. SEG_06L      1x   SUPPORT from build plate (~9 g)
+14. SEG_06R      1x   SUPPORT from build plate (~7 g)  -- ~0.2 g is a thin branch up a pin channel: it is open at both ends, push it out with a rod
+15. SEG_07L      1x   a few specks of support from the build plate (< 1 g)
+16. SEG_07R      1x   no support
+17. SEG_08L      1x   a few specks of support from the build plate (< 1 g)
 18. SEG_08R      1x   no support
-19. SEG_09L      1x   no support
-20. SEG_09R      1x   no support
-21. SEG_10L      1x   no support
-22. SEG_10R      1x   SUPPORT from build plate (~12 cm2)
-23. SEG_11L      1x   SUPPORT from build plate (~9 cm2)
-24. SEG_11R      1x   SUPPORT from build plate (~12 cm2)
-25. SEG_12L      1x   no support
-26. SEG_12R      1x   no support
-27. SEG_13L      1x   no support
-28. SEG_13R      1x   no support
+19. SEG_09L      1x   SUPPORT from build plate (~1 g)
+20. SEG_09R      1x   a few specks of support from the build plate (< 1 g)
+21. SEG_10L      1x   SUPPORT from build plate (~1 g)
+22. SEG_10R      1x   SUPPORT from build plate (~4 g)
+23. SEG_11L      1x   SUPPORT from build plate (~4 g)
+24. SEG_11R      1x   SUPPORT from build plate (~2 g)
+25. SEG_12L      1x   SUPPORT from build plate (~1 g)
+26. SEG_12R      1x   SUPPORT from build plate (~1 g)
+27. SEG_13L      1x   a few specks of support from the build plate (< 1 g)
+28. SEG_13R      1x   SUPPORT from build plate (~1 g)
 29. SEG_14       1x   no support
 30. SEG_15       1x   no support
 31. SEG_16       1x   no support
 32. SEG_17       1x   no support
 33. SEG_18       1x   no support
-34. SEG_19L      1x   no support
-35. SEG_19R      1x   no support
-36. SEG_20L      1x   no support
-37. SEG_20R      1x   no support
-38. SEG_21L      1x   no support
-39. SEG_21R      1x   SUPPORT from build plate (~9 cm2)
-40. SEG_22L      1x   SUPPORT from build plate (~39 cm2)
-41. SEG_22R      1x   no support
+34. SEG_19L      1x   a few specks of support from the build plate (< 1 g)
+35. SEG_19R      1x   a few specks of support from the build plate (< 1 g)
+36. SEG_20L      1x   SUPPORT from build plate (~1 g)
+37. SEG_20R      1x   SUPPORT from build plate (~1 g)
+38. SEG_21L      1x   SUPPORT from build plate (~3 g)
+39. SEG_21R      1x   SUPPORT from build plate (~3 g)
+40. SEG_22L      1x   SUPPORT from build plate (~4 g)
+41. SEG_22R      1x   SUPPORT from build plate (~4 g)
 42. PIN          4x   no support  -- print at 100 % infill (solid), lying on its flat
 
 crosswise joint (baguette-cut): conical peg dia 27 at the face, 22 mm into the neighbour's socket, + two-part epoxy on the whole face
 lengthwise joint (L/R seam): transverse peg up to dia 20 + epoxy
 PIN dia 11: 4x, printed SOLID (100% infill) lying on its flat, 2 per lumbar joint, slid in from each side face until it stops
+
+WHOLE CHAIR (PrusaSlicer, pins x4): 16.8 kg of filament, of which support 114 g (0.7 %), ~467 h of printing on one printer

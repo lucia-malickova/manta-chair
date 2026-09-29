@@ -215,15 +215,15 @@ section((5250, 2585), "3D PRINTING")
 rows = [
  ("PARTS", "41 segments + 1 pin type (x4)  -  limit 49"),
  ("PART SIZE", "each <= 212 x 220 x 250 mm"),
- ("SUPPORTS", "auto-oriented for the least support: 29 of 42 parts need none, the rest a little, from the build plate only"),
+ ("SUPPORTS", "almost none: under 1 % of the filament (114 g, PrusaSlicer), from the build plate only; every hole is shaped for how its part lies, so none grows inside"),
  ("MATERIAL", "PETG"),
  ("LAYER / NOZZLE", "0.20 mm  /  0.4 mm"),
  ("WALLS", "5 perimeters"),
  ("INFILL", "35 % gyroid  (kept low — the ribbon's own bulk carries the load)"),
  ("ADHESIVE", "two-part epoxy (structural)"),
- ("PIN", "dia 11 x 155 mm rod, 100 % infill, printed lying on its flat, x4 (2 lumbar joints)"),
- ("EST. WEIGHT", "~16 kg  -  ~90 EUR in budget filament"),
- ("BATCH TIME", "~160-200 h"),
+ ("PIN", "dia 11 x 133 mm rod, 100 % infill, printed lying on its flat, x4 (2 lumbar joints)"),
+ ("EST. WEIGHT", "~17 kg  -  ~90 EUR in budget filament (PrusaSlicer)"),
+ ("BATCH TIME", "~470 h on one printer (PrusaSlicer estimate)"),
 ]
 y = 2680
 for k, v in rows:
