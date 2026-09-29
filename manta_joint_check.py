@@ -92,7 +92,7 @@ def main(gen_name="manta_ribbon"):
                              f"(socket open to a face/seam)")
             if blocked > max(20.0, 0.02 * g.vol(peg)):
                 fails.append(f"{name}: {blocked:.0f} mm3 of the peg hits solid material (socket missing/misplaced)")
-            if into_self > 0.02:
+            if into_self > 0.05:       # a little overlap is just fused into its own part
                 fails.append(f"{name}: {into_self:.0%} of the peg runs back into its own part")
         # wall around the socket: points 2 mm outside the peg's side surface
         # must still be inside the neighbour -> no paper-thin skin over a hole

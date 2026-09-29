@@ -1,56 +1,57 @@
 MANTA — numbered, pre-oriented printable parts (matches Board key)
 
-Each file is pre-rotated onto its own real cut/joint face (python manta_orient.py)
-— import and print as-is. All 42 parts land on a solid bed footprint (>=400 mm2).
-Every peg is checked by virtual assembly (python manta_joint_check.py): it sits in a
-socket closed inside ONE neighbour part, with >= 2 mm wall around it.
-Each part number is ENGRAVED on one of its glue faces.
-PIN: print SOLID (100 % infill). ASSEMBLY: glue each L+R pair first, then join segments.
-Always print both halves (L + R) of a segment from the SAME version of the files.
+Each file is pre-rotated to the orientation needing the LEAST support, on a solid
+base (python manta_orient.py) — import and print as-is. Slicer: "Support on build
+plate only" (never "Everywhere": it fills the peg sockets and pin holes).
+Every peg sits in a socket closed inside ONE neighbour part with >= 2 mm wall
+(python manta_joint_check.py); >= 0.07 mm clearance survives in these STL files
+(python manta_stl_fit_check.py). Each part number is ENGRAVED on a glue face.
+ASSEMBLY: glue each L+R pair first, then join segments. Print both halves of a
+segment from the SAME version of the files.
 
 BOARD LEGEND  (42 items, limit 49)
- 1. SEG_00L      1x
- 2. SEG_00R      1x
- 3. SEG_01L      1x
- 4. SEG_01R      1x
- 5. SEG_02L      1x
- 6. SEG_02R      1x
- 7. SEG_03L      1x
- 8. SEG_03R      1x
- 9. SEG_04L      1x
-10. SEG_04R      1x
-11. SEG_05L      1x
-12. SEG_05R      1x
-13. SEG_06L      1x
-14. SEG_06R      1x
-15. SEG_07L      1x
-16. SEG_07R      1x
-17. SEG_08L      1x
-18. SEG_08R      1x
-19. SEG_09L      1x
-20. SEG_09R      1x
-21. SEG_10L      1x
-22. SEG_10R      1x
-23. SEG_11L      1x
-24. SEG_11R      1x
-25. SEG_12L      1x
-26. SEG_12R      1x
-27. SEG_13L      1x
-28. SEG_13R      1x
-29. SEG_14       1x
-30. SEG_15       1x
-31. SEG_16       1x
-32. SEG_17       1x
-33. SEG_18       1x
-34. SEG_19L      1x
-35. SEG_19R      1x
-36. SEG_20L      1x
-37. SEG_20R      1x
-38. SEG_21L      1x
-39. SEG_21R      1x
-40. SEG_22L      1x
-41. SEG_22R      1x
-42. PIN          4x   <- print at 100 % infill (solid)
+ 1. SEG_00L      1x   SUPPORT from build plate (~71 cm2)
+ 2. SEG_00R      1x   no support
+ 3. SEG_01L      1x   SUPPORT from build plate (~12 cm2)
+ 4. SEG_01R      1x   no support
+ 5. SEG_02L      1x   no support
+ 6. SEG_02R      1x   no support
+ 7. SEG_03L      1x   SUPPORT from build plate (~16 cm2)
+ 8. SEG_03R      1x   SUPPORT from build plate (~22 cm2)
+ 9. SEG_04L      1x   no support
+10. SEG_04R      1x   SUPPORT from build plate (~6 cm2)
+11. SEG_05L      1x   SUPPORT from build plate (~9 cm2)
+12. SEG_05R      1x   SUPPORT from build plate (~8 cm2)
+13. SEG_06L      1x   SUPPORT from build plate (~62 cm2)
+14. SEG_06R      1x   SUPPORT from build plate (~37 cm2)
+15. SEG_07L      1x   SUPPORT from build plate (~26 cm2)
+16. SEG_07R      1x   SUPPORT from build plate (~23 cm2)
+17. SEG_08L      1x   no support
+18. SEG_08R      1x   SUPPORT from build plate (~6 cm2)
+19. SEG_09L      1x   SUPPORT from build plate (~7 cm2)
+20. SEG_09R      1x   SUPPORT from build plate (~8 cm2)
+21. SEG_10L      1x   no support
+22. SEG_10R      1x   SUPPORT from build plate (~15 cm2)
+23. SEG_11L      1x   SUPPORT from build plate (~9 cm2)
+24. SEG_11R      1x   SUPPORT from build plate (~12 cm2)
+25. SEG_12L      1x   no support
+26. SEG_12R      1x   no support
+27. SEG_13L      1x   no support
+28. SEG_13R      1x   no support
+29. SEG_14       1x   no support
+30. SEG_15       1x   no support
+31. SEG_16       1x   no support
+32. SEG_17       1x   no support
+33. SEG_18       1x   no support
+34. SEG_19L      1x   no support
+35. SEG_19R      1x   no support
+36. SEG_20L      1x   no support
+37. SEG_20R      1x   no support
+38. SEG_21L      1x   no support
+39. SEG_21R      1x   SUPPORT from build plate (~10 cm2)
+40. SEG_22L      1x   SUPPORT from build plate (~38 cm2)
+41. SEG_22R      1x   no support
+42. PIN          4x   no support  -- print at 100 % infill (solid)
 
 crosswise joint (baguette-cut): conical peg dia 27 at the face, 22 mm into the neighbour's socket, + two-part epoxy on the whole face
 lengthwise joint (L/R seam): transverse peg up to dia 20 + epoxy

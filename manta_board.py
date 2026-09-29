@@ -193,7 +193,7 @@ wrap((170, 4770), "Exploded — 41 segments, no two alike. Cuts and pegs are com
      F(28), SUB, maxw=2800)
 
 steps = [
- ("1", "Lay out by zone", "Parts 1-42 in reading order form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
+ ("1", "Lay out by zone", "Every part has its number (1-42) ENGRAVED on a glue face. In reading order they form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
  ("2", "Left + right halves FIRST", "Wide segments come in L+R halves. Glue each pair along the centre-line on its transverse peg (up to dia 20) before anything else; the seam is the keel."),
  ("3", "Crosswise joints", "Then join the segments: seat the printed conical peg (dia 27 at the face) in its socket, two-part epoxy over the whole face. No screws."),
  ("4", "Lumbar pins", "Only the two joints beside the lumbar: drive the dia 11 printed pin (x2, printed solid) through the joint before the epoxy sets."),
@@ -215,7 +215,7 @@ section((5250, 2585), "3D PRINTING")
 rows = [
  ("PARTS", "41 segments + 1 pin type (x4)  -  limit 49"),
  ("PART SIZE", "each <= 212 x 220 x 250 mm"),
- ("SUPPORTS", "none — every gram becomes chair, none scrapped as support waste"),
+ ("SUPPORTS", "auto-oriented for the least support: 23 of 42 parts need none, the rest a little, from the build plate only"),
  ("MATERIAL", "PETG"),
  ("LAYER / NOZZLE", "0.20 mm  /  0.4 mm"),
  ("WALLS", "5 perimeters"),

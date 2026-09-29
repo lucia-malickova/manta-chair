@@ -80,35 +80,26 @@ and so on) — so the file list itself tells you what to print against the
 Board, no cross-referencing needed. `PARTS_LIST.txt` in that folder has the
 same numbering.
 
-**Every file in `MANTA_RIBBON/` and `MANTA_LIGHT/` is pre-rotated to its own
-support-free orientation** — import and print as-is, no manual rotation.
-This used to be a per-part text note ("print STANDING") based on a rough
-spline-turn heuristic that was never actually checked against the mesh; on
-the real geometry it left an average 18% of each part's surface overhanging
-past 45°, up to 38% on the worst parts — well into "the slicer will ask for
-supports" territory regardless of what the note said.
+**Every file in `MANTA_RIBBON/` and `MANTA_LIGHT/` is pre-rotated to the
+orientation that needs the least support** — import and print as-is.
 
-`manta_orient.py` searches candidate build directions per part and, wherever
-possible, rests it on one of its own **two real crosswise cut/joint faces**
-— matched by angle against the *exact* cut-face directions the generator
-itself used (`tangent(cuts[k])`, `tangent(cuts[k+1])`), not just whichever
-flat mesh surface is biggest or sits at the most extreme end (small fillets
-around a tenon's base can be flatter and more "extreme" than the real,
-much larger cut face, and got picked by mistake in an earlier version).
-This matters because a joint's tenon is perpendicular to *its own* cut face
-by construction: resting on the real cut face at the tenon's end points it
-straight up or down, never sideways. Caught on a real test print of part
-14 — a non-joint flat face scored well on footprint and overhang on paper,
-but left the tenon sticking out sideways needing a support the numbers
-never showed. On a strongly-curved segment the joint at the *other* end can
-still sit at an angle (the two ends of one segment aren't always parallel)
-— if your slicer flags a support there, it's a small one for just that
-tenon tip, not the whole part. Falls back to the largest bed-contact
-footprint under a tolerable overhang when no real cut face qualifies. The
-result: **every one of the 42 parts lands on a solid footprint (>=400 mm²)**,
-none need a brim for adhesion; average overhang ~13% (worst ~25%). Run it
-yourself on any regenerated `SEG_*.stl` set:
-`python manta_orient.py MANTA_RIBBON manta_ribbon`.
+Honest numbers: a curved, fluted ribbon segment can't always be printed
+with zero support. `manta_orient.py` tries ~400 orientations per part and
+keeps the one with the smallest area a slicer would support (surfaces
+overhanging more than 50° from vertical, not on the bed), among those that
+stand on a solid base (>= 400 mm² footprint). A sideways peg counts as
+overhang too, so it is avoided automatically. Result: **23 of the 42
+competition parts (26 of 42 in `MANTA_LIGHT`) need no support at all** —
+the few cm² that remain are the small ceiling of the peg socket, which the
+printer bridges. The rest need a modest support from the build plate
+(largest: the foot-tip prongs, 40–65 cm²). `SUPPORT_REPORT.txt` and
+`PARTS_LIST.txt` in each folder list which parts need it.
+
+In the slicer use **"Support on build plate only"**, never "Everywhere":
+"Everywhere" also fills the peg sockets and pin holes with supports that
+are hard to pull out of a deep narrow cone. (An earlier version of these
+docs claimed "no supports" for every part; that was never measured and was
+not true.)
 
 ---
 
@@ -120,8 +111,12 @@ Everything is set in the `PARAMETERS` block at the top of `manta_ribbon.py`:
 - `TWIST_S` — spiral twist of the section
 - `SEG_MAX`, `FORK_SPLAY`, `TEN_R`, `PIN_R` ... — slicing and joints
 
-After printing the joint test, note which clearance (`0.08 / 0.12 / 0.16`)
-holds best — set it as `TEN_CLR` and regenerate the final STLs.
+`TEN_CLR = 0.12` mm was confirmed on a printed test joint (the cone slides
+in with a little play; with the pin and no glue it already held hard).
+Printers differ: print `MANTA_TEST/` (~2 h) first on yours, and if the
+cone is too tight or too loose change `TEN_CLR` by 0.03 and regenerate.
+The print STLs are exported at 0.03 mm tolerance so that this clearance
+survives the export (`python manta_stl_fit_check.py` measures it).
 
 **Every run of `manta_ribbon.py` re-checks itself.** Before exporting
 anything, it calls `manta_strength_check.py`'s `worst_margin()`, which
@@ -211,9 +206,10 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `manta_apply_template.py` — embeds the chair/parts into the official `3D_Template.stl`
 - `manta_strength_check.py` — strength + stability
 - `manta_ergonomics_check.py` — seat/backrest dimensions vs standard reference ranges
+- `manta_stl_fit_check.py` — measures the peg/socket clearance left in the exported print STLs
 - `manta_joint_check.py` — virtual assembly: every peg seats in its neighbour, nothing sticks out or overlaps
 - `manta_uniqueness_check.py` — proves no two of the 41 segments are geometrically identical
-- `manta_orient.py` — rotates each part to its lowest-overhang, support-free print orientation
+- `manta_orient.py` — rotates each part to the orientation needing the least support (solid base kept)
 - `manta_joint_test.py` — physical joint test
 - `manta_material.py` — filament use + cost from the real STL parts
 - the remaining `manta_*.py` files = rendering / submission packaging

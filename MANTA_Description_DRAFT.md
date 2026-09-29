@@ -30,9 +30,9 @@ Each rule sets the section, and each carries load:
 
 ## Printing
 
-41 segments, each within 212 × 220 × 250 mm and pre-oriented on its own
-cut face to print **without supports** — every gram becomes chair, none
-scrapped as support waste. PETG, 0.2 mm layers, 5 perimeters, 35 % gyroid,
+41 segments, each within 212 × 220 × 250 mm, auto-oriented for the least
+support: over half print with **none**, the rest need a little, from the
+build plate only. PETG, 0.2 mm layers, 5 perimeters, 35 % gyroid,
 solid pins. ~16 kg, ~180 h of printing, ~90 € of filament.
 
 ## Assembly — computed joints, no screws
@@ -44,8 +44,8 @@ mid-segment. Every joint is a full solid cross-section (7,000–17,000 mm²),
 epoxied, with a self-centring conical peg sized to the local thickness,
 centred on its face, shrunk until its socket keeps a 2 mm wall.
 Wide segments split along a flute-hidden keel. Only the two most-loaded
-joints, beside the lumbar, add a solid Ø11 pin. A virtual assembly verifies
-every peg seats in its neighbour.
+lumbar joints add a solid Ø11 pin. Every part's number is engraved on a glue face. A virtual assembly
+verifies every peg seats in its neighbour.
 
 ## Stability and load
 

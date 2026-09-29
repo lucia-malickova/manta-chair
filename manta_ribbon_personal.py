@@ -139,6 +139,7 @@ TEN_CLR = 0.12
 TEN_ROOT = 3.0        # mm of each peg fused into its own part (only the rest protrudes)
 SOCK_EXTRA = 0.6      # socket this much deeper than the peg: the glue faces meet, not the tip
 WALL_MIN = 2.0        # minimum wall left around every socket (mm)
+PEG_R_MIN, PEG_P_MIN, PEG_TIP_MIN = 3.5, 8.0, 2.0   # smallest peg worth printing (mm)
 JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM = [], [], []
 PIN_R, PIN_CLR = 5.5, 0.15                   # dia 11 crosswise pin, printed SOLID (100% infill)
 PIN_POS = 0.35        # pin centre at this fraction of the peg length past the cut: close to
@@ -146,7 +147,9 @@ PIN_POS = 0.35        # pin centre at this fraction of the peg length past the c
 
 BED = (212.0, 220.0, 250.0)
 MESH_TOL, MESH_ANG = 0.14, 0.35     # MANTA_Chair.stl (submission + render)
-STL_TOL, STL_ANG   = 0.45, 0.8      # segments + Assembly (10 MB total limit)
+STL_TOL, STL_ANG   = 0.45, 0.8      # coarse copies -> competition Assembly (size limit)
+PRINT_TOL, PRINT_ANG = 0.03, 0.1    # the parts you PRINT: facets within 0.03 mm, so the
+                                    # 0.12 mm peg/socket clearance survives the STL export
 OUT = "MANTA_PERSONAL"
 # ════════════════════════════════════════════════════════════════
 
@@ -690,6 +693,27 @@ def build():
                 pass
         return float(np.hypot(pu, pv).min())
 
+    def _deepest_point(pts, ax):
+        """the point of the cut-face polygon farthest from its edge (centre
+        of the largest inscribed circle) -- the roomiest spot for a peg. The
+        plain average of the outline's vertices was used before, but the
+        flutes crowd the vertices on one side, which pulled that 'centre'
+        towards the edge on the right halves (9 mm of room instead of 17)."""
+        c0 = pts.mean(axis=0)
+        tmp = np.array([0.0, 0.0, 1.0]) if abs(ax[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
+        uu = np.cross(ax, tmp); uu /= (np.linalg.norm(uu) + 1e-9)
+        vv = np.cross(ax, uu)
+        try:
+            from shapely.geometry import Polygon
+            from shapely.ops import polylabel
+            poly = Polygon(np.column_stack([(pts - c0) @ uu, (pts - c0) @ vv])).buffer(0)
+            if poly.geom_type == "MultiPolygon":
+                poly = max(poly.geoms, key=lambda g: g.area)
+            p = polylabel(poly, tolerance=0.2)
+            return c0 + uu * p.x + vv * p.y
+        except Exception:
+            return c0
+
     def _fit_peg(cc, ax, r_cut, slope, P, host_root, host_sock, own_body, name, keep_out=()):
         """shrink the peg (length P, radius r_cut at the joint plane) until:
         socket inside host_sock, root inside host_root, peg clear of own_body,
@@ -698,17 +722,25 @@ def build():
         crown, the two joints of one part are only mm apart inside it).
         Returns (peg_solid, socket_solid, r_cut, P, ok)."""
         ok = False
+        f_sock = f_root = f_own = f_keep = 0.0
+        peg = sock = None
         for _ in range(10):
-            tip = max(2.5, r_cut - slope * P)
+            # peg and socket must follow ONE taper: never clip the tip radius
+            # (an earlier clamp made small pegs fatter than their socket
+            # mid-way); if the cone would get too thin, shorten it instead
+            P = min(P, (r_cut - PEG_TIP_MIN) / slope - SOCK_EXTRA)
+            if r_cut < PEG_R_MIN or P < PEG_P_MIN:
+                break
+            tip = r_cut - slope * P
             peg = frustum(cc - ax * TEN_ROOT, ax, r_cut + slope * TEN_ROOT, tip, P + TEN_ROOT)
             prot = frustum(cc, ax, r_cut, tip, P)
             root = frustum(cc - ax * TEN_ROOT, ax, r_cut + slope * TEN_ROOT, r_cut, TEN_ROOT)
             sock = frustum(cc - ax * 0.5, ax, r_cut + slope * 0.5 + TEN_CLR,
-                           max(2.5, r_cut - slope * (P + SOCK_EXTRA)) + TEN_CLR, P + 0.5 + SOCK_EXTRA)
+                           r_cut - slope * (P + SOCK_EXTRA) + TEN_CLR, P + 0.5 + SOCK_EXTRA)
             # the socket PLUS a 2 mm wall all round it must lie inside the
             # neighbour -- not just the hole itself (no paper-thin skin)
             probe = frustum(cc + ax * 0.3, ax, r_cut + TEN_CLR + WALL_MIN,
-                            max(2.5, r_cut - slope * (P + SOCK_EXTRA)) + TEN_CLR + WALL_MIN,
+                            r_cut - slope * (P + SOCK_EXTRA) + TEN_CLR + WALL_MIN,
                             P + SOCK_EXTRA - 0.3)
             f_sock = sum(_inside(h, probe) for h in host_sock)
             f_root = sum(_inside(h, root) for h in host_root)
@@ -718,7 +750,7 @@ def build():
                 ok = True
                 break
             P *= 0.85
-            r_cut = max(4.0, r_cut * 0.92)
+            r_cut *= 0.92
         why = (f"socket {f_sock:.2f}, root {f_root:.2f}, self {f_own:.2f}, far-end {f_keep:.3f}")
         return peg, sock, r_cut, P, ok, why
 
@@ -742,7 +774,7 @@ def build():
             ap = A[sda]
             # peg centre = true centroid of the cut-face profile it must sit in
             cut_pts = np.array([v.toTuple() for v in wire_at(cuts[c], prof).Vertices()])
-            cc = cut_pts.mean(axis=0)
+            cc = _deepest_point(cut_pts, ne)
             th_loc = itp(cuts[c], TH_S)
             tr = min(TEN_R, max(7.0, 0.38 * th_loc))
             tr = min(tr, max(5.0, _room(cut_pts, cc, ne) - 3.0))
@@ -880,6 +912,7 @@ def build():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    os.makedirs(f"{OUT}/coarse", exist_ok=True)
     for f in os.listdir(OUT):
         if f.endswith((".stl", ".brep")):
             os.remove(os.path.join(OUT, f))
@@ -965,7 +998,10 @@ def main():
             fit = dd[0] <= 72 and dd[2] <= math.hypot(*BED[:2]) * 0.92
         if not fit:
             bad.append(nm)
-        cq.exporters.export(sol, f"{OUT}/{nm}.stl", tolerance=STL_TOL, angularTolerance=STL_ANG)
+        # coarse FIRST: OCCT keeps a shape's finest mesh, so the other order
+        # would silently write the fine mesh twice
+        cq.exporters.export(sol, f"{OUT}/coarse/{nm}.stl", tolerance=STL_TOL, angularTolerance=STL_ANG)
+        cq.exporters.export(sol, f"{OUT}/{nm}.stl", tolerance=PRINT_TOL, angularTolerance=PRINT_ANG)
         legend.append((nm, vert))
         r, c = divmod(idx, col)
         laid.append(sol.translate(Vector(c * gx - (bb.xmin + bb.xmax) / 2,
@@ -974,7 +1010,8 @@ def main():
               f"{'DOES NOT FIT' if not fit else ('standing' if vert else '')}")
 
     if pins:
-        cq.exporters.export(pins[0], f"{OUT}/PIN.stl", tolerance=0.2, angularTolerance=0.4)
+        cq.exporters.export(pins[0], f"{OUT}/coarse/PIN.stl", tolerance=0.2, angularTolerance=0.4)
+        cq.exporters.export(pins[0], f"{OUT}/PIN.stl", tolerance=PRINT_TOL, angularTolerance=PRINT_ANG)
         k = len(items); r, c = divmod(k, col); pb = pins[0].BoundingBox()
         laid.append(pins[0].translate(Vector(c * gx - (pb.xmin + pb.xmax) / 2,
                                              -r * gy - (pb.ymin + pb.ymax) / 2, -pb.zmin)))

@@ -227,34 +227,76 @@ def segment_cut_tangents(fname, gen):
     return mid, [t_start, t_end]
 
 
+SUPPORT_ANGLE = 50.0   # a slicer supports surfaces overhanging more than this from vertical
+SUPPORT_FREE = 6.0     # cm2 -- below this it's only the socket's small ceiling, which bridges
+
+
+def support_area(mesh, R):
+    """cm2 of surface a slicer would want to support in orientation R: faces
+    overhanging more than SUPPORT_ANGLE from vertical, not lying on the bed.
+    (An earlier version minimised an overhang PERCENTAGE and the docs claimed
+    "no supports" -- never measured; ~20 of 42 parts really need some.)"""
+    n = mesh.face_normals @ R.T
+    zc = (mesh.triangles_center @ R.T)[:, 2]
+    steep = (-n[:, 2] > np.cos(np.radians(90.0 - SUPPORT_ANGLE))) & (zc > zc.min() + 0.6)
+    return float(mesh.area_faces[steep].sum() / 100.0)
+
+
+def best_support_orientation(mesh, cut_faces=(), priority_dirs=(), n=400,
+                             min_footprint_mm2=400.0):
+    """The orientation with the LEAST support area among those that stand on
+    a solid footprint. A sideways peg is counted automatically (its underside
+    is overhang). Ties (within 0.5 cm2) go to resting on a real cut face."""
+    cands = []
+    for fn in cut_faces:
+        for d in (fn, -fn):
+            cands.append((np.asarray(d, float), True))
+    for d in list(priority_dirs) + list(fibonacci_sphere(n)):
+        cands.append((np.asarray(d, float), False))
+    for _, fn, _ in flat_face_normals(mesh):
+        cands.append((fn, False)); cands.append((-fn, False))
+    best = None
+    for d, is_cut in cands:
+        R = rot_to_z(d)
+        fp = base_footprint(mesh, R)
+        if fp < min_footprint_mm2:
+            continue
+        sa = support_area(mesh, R)
+        key = (round(sa * 2) / 2, 0 if is_cut else 1)
+        if best is None or key < best[0]:
+            best = (key, sa, R, fp)
+    if best is None:                        # nothing stands well: fall back
+        pct, R, fp = best_orientation(mesh, cut_faces=cut_faces, priority_dirs=priority_dirs)
+        return support_area(mesh, R), R, fp
+    return best[1], best[2], best[3]
+
+
 def main(folder, gen_name="manta_ribbon"):
     gen = importlib.import_module(gen_name)
     files = sorted(glob.glob(f"{folder}/*.stl"))
-    print(f"\nMANTA — orienting {len(files)} parts in {folder}/ (cut faces from {gen_name})\n")
-    print(f"{'PART':16s}{'before':>8s}{'after':>8s}{'footprint':>12s}")
-    small = []
+    print(f"\nMANTA — orienting {len(files)} parts in {folder}/ for the least support\n")
+    print(f"{'PART':16s}{'support cm2':>12s}{'footprint':>12s}")
+    report = []
     for f in files:
         m = trimesh.load(f)
-        before = overhang_pct(m.face_normals, m.area_faces, m.area)
         mid, exact_tangents = segment_cut_tangents(f, gen)
         cut_faces = real_cut_faces(m, exact_tangents) if exact_tangents else []
         pri = [mid] if mid is not None else []
-        pct, R, fp = best_orientation(m, priority_dirs=pri, cut_faces=cut_faces)
+        sa, R, fp = best_support_orientation(m, cut_faces=cut_faces, priority_dirs=pri)
         T = np.eye(4); T[:3, :3] = R
         m.apply_transform(T)
         m.apply_translation((0, 0, -m.bounds[0][2]))  # drop to the bed
         m.export(f)
-        flag = "  << small base!" if fp < 400.0 else ""
-        if flag:
-            small.append(os.path.basename(f))
-        print(f"{os.path.basename(f):16s}{before:7.1f}%{pct:7.1f}%{fp:10.0f}mm2{flag}")
-    print("\ndone — parts overwritten in place, pre-oriented for support-free printing.")
-    if small:
-        print(f"!! {len(small)} part(s) still have a small base even after the fix "
-              f"(no orientation had both a >=400mm2 footprint and a tolerable "
-              f"overhang, true even lying on the real cut face) — consider a "
-              f"brim in the slicer for these: {small}")
-    print()
+        report.append((os.path.basename(f), sa, fp))
+        tag = "" if sa <= SUPPORT_FREE else "   needs support"
+        print(f"{os.path.basename(f):16s}{sa:12.1f}{fp:10.0f}mm2{tag}")
+    free = sum(1 for _, sa, _ in report if sa <= SUPPORT_FREE)
+    with open(os.path.join(folder, "SUPPORT_REPORT.txt"), "w", encoding="utf-8") as fh:
+        for nm, sa, fp in report:
+            fh.write(f"{nm}\t{sa:.1f}\t{fp:.0f}\n")
+    print(f"\ndone — {free} of {len(report)} parts print with no support "
+          f"(<= {SUPPORT_FREE:.0f} cm2 = just the socket ceiling, which bridges); "
+          f"the rest need some support from the build plate.\n")
 
 
 if __name__ == "__main__":
