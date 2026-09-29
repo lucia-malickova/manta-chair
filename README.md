@@ -32,6 +32,20 @@ renders / board / poster / PDF.
 
 ---
 
+## Is everything OK? — one command
+
+```
+python manta_verify.py            # both variants, every check (~45 min)
+python manta_verify.py --fast     # skips virtual assembly + PrusaSlicer (~5 min)
+python manta_verify.py light      # one variant
+```
+
+It prints PASS/FAIL for strength, the print files (42 parts, all inside the
+Prusa CORE One volume), peg clearance in the STLs, the virtual assembly, the
+support PrusaSlicer really adds (< 2 %, < 0.5 g inside holes), and the
+description/package limits — and ends with `ALL CHECKS PASSED` or the list
+of what failed.
+
 ## Run order
 
 | # | command | what it does | output |

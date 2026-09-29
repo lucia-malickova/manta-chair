@@ -77,7 +77,7 @@ def main(gen_name="manta_ribbon"):
     # pins: the pin surface vs every part it passes through
     try:
         pin_mesh = trimesh.load(f"{g.OUT}/PIN.stl")
-        r_pin = (pin_mesh.extents[:2].max()) / 2
+        r_pin = sorted(pin_mesh.bounding_box_oriented.primitive.extents)[1] / 2   # round width, any direction
         print(f"pin STL radius {r_pin:.3f} mm vs hole {g.PIN_R + g.PIN_CLR:.3f} mm")
     except Exception:
         pass
