@@ -13,8 +13,8 @@ import trimesh
 import manta_ribbon_personal as st
 
 SRC = "MANTA_PERSONAL"
-INFILL = 0.20        # match manta_strength_check_personal.py
-WALLS = 5
+INFILL = 0.15        # match manta_strength_check_personal.py
+WALLS = 4
 NOZZLE = 0.4
 DENSITY = 1.27        # g/cm3, PETG
 PRICE_PER_KG = 6.39   # EUR/kg — set to your actual filament price

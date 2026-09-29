@@ -16,7 +16,7 @@ import math
 import manta_ribbon_personal as st
 
 # ══════════ (A) REAL-WORLD INPUTS ══════════
-M_KG = 90.0      # PERSONAL VARIANT design target (60kg user + guest margin) — the
+M_KG = 70.0      # PERSONAL VARIANT design target (a 60 kg user + margin) — the
                  # competition variant uses 120.0; keep this file's M_KG in sync
                  # with what the chair is actually being thinned for
 G    = 9.81
@@ -32,7 +32,7 @@ TAU_ULT   = 27.0
 E_MPA     = 2000.0
 EPOXY_SH  = 12.0   # epoxy shear at the joint
 EPOXY_TEN = 15.0   # epoxy tension (butt joint, conservative)
-INFILL    = 0.20   # PERSONAL VARIANT: 20% gyroid (competition variant uses 0.35)
+INFILL    = 0.15   # PERSONAL VARIANT: 15% gyroid, 4 perimeters (competition: 0.35, 5)
 
 # ══════════ (B) GEOMETRY — read LIVE from manta_ribbon.py's actual spine/
 # width/thickness tables, not copied by hand. This means changing W_S, TH_S
@@ -154,7 +154,9 @@ PIN_POS  = st.PIN_POS                               # pin centre, fraction of TE
 ta_pin   = TAU_ULT * 1.0 / SF                       # pins are printed SOLID (100% infill)
 r_at_pin = TENON_RC - (TENON_R - TENON_TIP) / TENON_L * TENON_P * PIN_POS
 cap_root = Acirc(TENON_RC) * 0.85 * la                          # peg breaks at the joint
-cap_pin  = 2 * Acirc(PIN_R) * ta_pin                            # pin, double shear
+_th = 2 * math.acos((PIN_R - st.PIN_FLAT) / PIN_R)             # the pin's print flat
+A_PIN = Acirc(PIN_R) - PIN_R ** 2 / 2 * (_th - math.sin(_th))
+cap_pin  = 2 * A_PIN * ta_pin                                   # pin, double shear
 cap_bear = (2 * PIN_R) * (2 * r_at_pin) * sa                    # pin crushes the peg
 cap_tear = 2 * (TENON_P * (1 - PIN_POS) - PIN_R) * (2 * r_at_pin) * ta   # pin tears out the peg tip
 cap_N    = min(cap_root, cap_pin, cap_bear, cap_tear)

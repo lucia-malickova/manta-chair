@@ -196,7 +196,7 @@ steps = [
  ("1", "Lay out by zone", "Every part has its number (1-42) ENGRAVED on a glue face. In reading order they form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
  ("2", "Left + right halves FIRST", "Wide segments come in L+R halves. Glue each pair along the centre-line on its transverse peg (up to dia 20) before anything else; the seam is the keel."),
  ("3", "Crosswise joints", "Then join the segments: seat the printed conical peg (dia 27 at the face) in its socket, two-part epoxy over the whole face. No screws."),
- ("4", "Lumbar pins", "Only the two joints beside the lumbar: drive the dia 11 printed pin (x2, printed solid) through the joint before the epoxy sets."),
+ ("4", "Lumbar pins", "Only the two joints beside the lumbar: slide a dia 11 pin in from each side face until it stops (2 per joint) before the epoxy sets."),
  ("5", "Sub-assemble, cure", "Build seat, backrest and each fork-foot separately. Cure 24 h. Then join at the lumbar and the two knees."),
  ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~250 kg."),
 ]
@@ -215,13 +215,13 @@ section((5250, 2585), "3D PRINTING")
 rows = [
  ("PARTS", "41 segments + 1 pin type (x4)  -  limit 49"),
  ("PART SIZE", "each <= 212 x 220 x 250 mm"),
- ("SUPPORTS", "auto-oriented for the least support: 23 of 42 parts need none, the rest a little, from the build plate only"),
+ ("SUPPORTS", "auto-oriented for the least support: 29 of 42 parts need none, the rest a little, from the build plate only"),
  ("MATERIAL", "PETG"),
  ("LAYER / NOZZLE", "0.20 mm  /  0.4 mm"),
  ("WALLS", "5 perimeters"),
  ("INFILL", "35 % gyroid  (kept low — the ribbon's own bulk carries the load)"),
  ("ADHESIVE", "two-part epoxy (structural)"),
- ("PIN", "dia 11 printed rod, 100 % infill, x4, at the 2 lumbar joints"),
+ ("PIN", "dia 11 x 155 mm rod, 100 % infill, printed lying on its flat, x4 (2 lumbar joints)"),
  ("EST. WEIGHT", "~16 kg  -  ~90 EUR in budget filament"),
  ("BATCH TIME", "~160-200 h"),
 ]
@@ -243,7 +243,7 @@ wrap((box_x0 + 24, box_y0 + 70), "Nothing in nature repeats itself, so no two pa
      "either: every one of the 41 segments is geometrically unique — script-verified. One "
      "parametric script: change the width, thickness or infill tables and it regenerates a leaner "
      "variant with the same joints, automatically re-checked so it can't export something that "
-     "fails. A ready 90 kg / 40% lighter variant is included in the repo.",
+     "fails. A ready 70 kg, half-filament variant is included in the repo.",
      F(25), INK, maxw=1512, sp=6)
 dr.text((box_x0 + 24, 4840), "Full source, anonymised for review:", font=F(22), fill=SUB)
 dr.text((box_x0 + 24, 4868), "anonymous.4open.science/r/manta-chair-23D4", font=F(24, True), fill=TEAL_DK)

@@ -88,8 +88,8 @@ with zero support. `manta_orient.py` tries ~400 orientations per part and
 keeps the one with the smallest area a slicer would support (surfaces
 overhanging more than 50° from vertical, not on the bed), among those that
 stand on a solid base (>= 400 mm² footprint). A sideways peg counts as
-overhang too, so it is avoided automatically. Result: **23 of the 42
-competition parts (26 of 42 in `MANTA_LIGHT`) need no support at all** —
+overhang too, so it is avoided automatically. Result: **29 of the 42
+competition parts (28 of 42 in `MANTA_LIGHT`) need no support at all** —
 the few cm² that remain are the small ceiling of the peg socket, which the
 printer bridges. The rest need a modest support from the build plate
 (largest: the foot-tip prongs, 40–65 cm²). `SUPPORT_REPORT.txt` and
@@ -97,7 +97,9 @@ printer bridges. The rest need a modest support from the build plate
 
 In the slicer use **"Support on build plate only"**, never "Everywhere":
 "Everywhere" also fills the peg sockets and pin holes with supports that
-are hard to pull out of a deep narrow cone. (An earlier version of these
+are hard to pull out of a deep narrow cone. Every peg socket ends in a
+45° point (like a drilled hole), so it prints without support inside
+whichever way it faces — no support blockers needed. (An earlier version of these
 docs claimed "no supports" for every part; that was never measured and was
 not true.)
 
@@ -130,20 +132,19 @@ error instead of quietly writing an unsafe STL. Run
 
 **A ready-made lighter variant — [`MANTA_LIGHT/`](MANTA_LIGHT).** Not
 everyone needs a chair rated for a 120 kg dynamic sitter. `manta_ribbon_personal.py`
-is the exact same generator with `TH_S` thinned to 75% and infill dropped
-to 20%; `manta_strength_check_personal.py` re-verifies it at a 90 kg design
-target (still a healthy margin over a single 60 kg user, plus guests) — on
-the primary (epoxied) load path, weakest check **1.6x**. The PETG-only
-backup (peg + pin, no epoxy — what would carry the joint if the glue
-itself failed) comes out to **0.5x** at 20% infill; it doesn't gate
-generation (a deliberate, explicit trade-off), but it means this variant
-relies on the epoxy actually being applied — no skipping the glue step on
-`MANTA_LIGHT/` parts. `MANTA_LIGHT/` is the already-generated,
-numbered result: same 42 parts, same joints, ~40% less filament
-(**9.6 kg vs 16.2 kg**, run `manta_material_personal.py` for the cost at
-your own filament price). This is a demonstration variant, not the
-competition entry — the competition
-files are untouched.
+is the exact same generator with `TH_S` thinned to 75%, printed with 15%
+gyroid and 4 perimeters; `manta_strength_check_personal.py` re-verifies it
+for a **70 kg** sitter (x 1.8 dynamic x 2.0 safety): weakest glued check
+**1.6x**, glued full-section joint **26x**. The PETG-only backup (peg + pin,
+no epoxy) is **0.5x**, so this variant relies on the epoxy actually being
+applied. With 15% infill the glue faces are only as good as their solid
+skin: use at least 6 top / 5 bottom solid layers and only scuff them with
+P120, don't sand through. Pins still at 100% infill. `MANTA_LIGHT/` is the
+already-generated, numbered result: same 42 parts, same joints, about half
+the filament (**7.7 kg vs 16.2 kg**, `manta_material_personal.py` for the
+cost at your own filament price). Load-test it before sitting on it
+(30 -> 50 -> 70 kg, each overnight). A demonstration variant, not the
+competition entry — the competition files are untouched.
 
 Want to print it in more than one colour? `python manta_colour_guide.py`
 buckets the 41 segments into 4 filament colours by height (floor -> crown),
@@ -167,8 +168,13 @@ The joint is **not "just a pin."** In order of importance:
    cut — self-centring, it aligns the joint and carries shear. Only 3 mm of
    it is fused into its own part; the rest sits in the neighbour's socket
    (0.6 mm deeper than the peg, so the glue faces meet, not the tip).
-3. **A dia 11 pin, printed SOLID (100% infill)** — ONLY at the 2 joints
-   beside the lumbar. A cone in a cone slides straight out, so without glue
+3. **Dia 11 x 155 mm pins, printed SOLID (100% infill) and lying on
+   their 0.6 mm flat** (so the layers run along the pin) — ONLY at the 2
+   joints beside the lumbar, two per joint. One straight hole per joint runs
+   through both halves' pegs, drilled in from each side face and stopping
+   0.5 mm short of the centre seam: slide each pin in until it stops. No
+   pin sticks out; at one joint the hole stays open ~39 mm on the side face
+   (fill it with a dab of epoxy if you like). A cone in a cone slides straight out, so without glue
    the pin is the only thing holding it: the backup is peg root -> peg ->
    pin in *series*, and its capacity is the weakest of those. With the pin
    placed close to the face it comes to **0.9x** of the full design load

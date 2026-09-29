@@ -121,6 +121,13 @@ def main(gen_name="manta_ribbon"):
         blocked = inside_any(pts, list(M.values())).mean()
         if blocked > 0.02:
             fails.append(f"PIN {j + 1}: {blocked:.0%} of it hits solid material")
+        # ...and it must lie inside the chair's envelope: never sticking out
+        env = inside_any(pts, list(R.values())).mean()
+        if env < 0.99:
+            fails.append(f"PIN {j + 1}: {1 - env:.0%} of it sticks out of the chair")
+        for k in range(j + 1, len(pins)):
+            if g.vol(pn.intersect(pins[k])) > 1.0:
+                fails.append(f"PINS {j + 1} and {k + 1} overlap (two pins in one hole)")
 
     print('checking overlaps ...', flush=True)
     # 4b) no overlap between neighbouring parts once assembled

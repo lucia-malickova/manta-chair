@@ -1,19 +1,25 @@
 MANTA — numbered, pre-oriented printable parts (matches Board key)
 
-Personal/lighter variant (~90 kg design target, not the competition entry).
+LIGHT variant — 70 kg design occupant, NOT the competition entry.
+Print settings it was checked for (manta_strength_check_personal.py):
+  4 perimeters, 15 % gyroid infill, >= 6 top / 5 bottom solid layers;
+  PIN: 100 % infill (solid). Load-test before use: 30 -> 50 -> 70 kg.
+
 Each file is pre-rotated to the orientation needing the LEAST support, on a solid
 base (python manta_orient.py) — import and print as-is. Slicer: "Support on build
-plate only" (never "Everywhere": it fills the peg sockets and pin holes).
+plate only" (never "Everywhere"). Every peg socket ends in a 45° point, so it
+prints without support inside, whichever way it faces.
 Every peg sits in a socket closed inside ONE neighbour part with >= 2 mm wall
-(python manta_joint_check.py); >= 0.07 mm clearance survives in these STL files
+(python manta_joint_check.py); >= 0.06 mm clearance survives in these STL files
 (python manta_stl_fit_check.py). Each part number is ENGRAVED on a glue face.
 ASSEMBLY: glue each L+R pair first, then join segments. Print both halves of a
 segment from the SAME version of the files.
 
+
 BOARD LEGEND  (42 items, limit 49)
  1. SEG_00L      1x   SUPPORT from build plate (~64 cm2)
  2. SEG_00R      1x   SUPPORT from build plate (~44 cm2)
- 3. SEG_01L      1x   SUPPORT from build plate (~9 cm2)
+ 3. SEG_01L      1x   SUPPORT from build plate (~7 cm2)
  4. SEG_01R      1x   no support
  5. SEG_02L      1x   no support
  6. SEG_02R      1x   no support
@@ -22,13 +28,13 @@ BOARD LEGEND  (42 items, limit 49)
  9. SEG_04L      1x   no support
 10. SEG_04R      1x   no support
 11. SEG_05L      1x   no support
-12. SEG_05R      1x   SUPPORT from build plate (~6 cm2)
-13. SEG_06L      1x   SUPPORT from build plate (~43 cm2)
-14. SEG_06R      1x   SUPPORT from build plate (~40 cm2)
-15. SEG_07L      1x   SUPPORT from build plate (~25 cm2)
-16. SEG_07R      1x   SUPPORT from build plate (~22 cm2)
+12. SEG_05R      1x   no support
+13. SEG_06L      1x   SUPPORT from build plate (~44 cm2)
+14. SEG_06R      1x   SUPPORT from build plate (~36 cm2)
+15. SEG_07L      1x   SUPPORT from build plate (~12 cm2)
+16. SEG_07R      1x   SUPPORT from build plate (~13 cm2)
 17. SEG_08L      1x   no support
-18. SEG_08R      1x   SUPPORT from build plate (~6 cm2)
+18. SEG_08R      1x   no support
 19. SEG_09L      1x   no support
 20. SEG_09R      1x   no support
 21. SEG_10L      1x   no support
@@ -49,11 +55,11 @@ BOARD LEGEND  (42 items, limit 49)
 36. SEG_20L      1x   no support
 37. SEG_20R      1x   no support
 38. SEG_21L      1x   no support
-39. SEG_21R      1x   SUPPORT from build plate (~18 cm2)
-40. SEG_22L      1x   SUPPORT from build plate (~37 cm2)
+39. SEG_21R      1x   SUPPORT from build plate (~16 cm2)
+40. SEG_22L      1x   SUPPORT from build plate (~36 cm2)
 41. SEG_22R      1x   SUPPORT from build plate (~20 cm2)
-42. PIN          4x   no support  -- print at 100 % infill (solid)
+42. PIN          4x   no support  -- print at 100 % infill (solid), lying on its flat
 
 crosswise joint (baguette-cut): conical peg dia 27 at the face, 22 mm into the neighbour's socket, + two-part epoxy on the whole face
 lengthwise joint (L/R seam): transverse peg up to dia 20 + epoxy
-PIN dia 11: 4x, printed SOLID (100% infill), one on each side of the lumbar (the most loaded joint)
+PIN dia 11: 4x, printed SOLID (100% infill) lying on its flat, 2 per lumbar joint, slid in from each side face until it stops

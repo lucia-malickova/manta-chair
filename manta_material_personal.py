@@ -20,8 +20,8 @@ import trimesh
 
 # ══════════ SET THESE FOR YOURSELF ══════════
 SRC = "MANTA_PERSONAL"
-INFILL = 0.20           # gyroid infill (0..1) — match manta_strength_check_personal.py
-WALLS = 5               # number of perimeter walls
+INFILL = 0.15           # gyroid infill (0..1) — match manta_strength_check_personal.py
+WALLS = 4               # number of perimeter walls
 NOZZLE = 0.4            # mm
 PETG_DENSITY = 1.27     # g/cm3
 PRICE_PER_KG = 6.39    # EUR/kg — your actual filament price

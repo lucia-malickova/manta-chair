@@ -59,4 +59,4 @@ weakest glued check 2.1×; with no glue at all, peg and pin still carry
 Nothing in nature repeats, so no two parts of this chair do either: all 41
 segments are geometrically unique (script-verified, no duplicates). Change
 the tables and the same script regenerates a leaner chair, joints and
-load checks included; a 90 kg, 40 % lighter variant is in the repo (anonymised source link below).
+load checks included; a 70 kg, half-filament variant is in the repo (anonymised source link below).

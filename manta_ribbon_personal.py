@@ -83,9 +83,9 @@ W_S = [(0.00,180),(0.08,188),(0.12,202),(0.15,286),(0.19,430),(0.30,428),
 # lumbar, a blade at the crown, a thicker lower brace (compression + moment
 # from the backrest overhang).
 # PERSONAL VARIANT — thinned to 75% of the competition thickness. Verified
-# by manta_strength_check.py: weakest joint margin 1.37x at a 90kg design
-# occupant -> implied safe static load ~123kg. Plenty above a single 60kg
-# user + guests, well short of the competition's 120kg-rated, 192kg-safe
+# by manta_strength_check_personal.py: weakest glued check ~1.6x at a 70 kg
+# design occupant, 15% infill, 4 perimeters. Enough for a single 70 kg
+# user, well short of the competition's 120 kg-rated, ~250 kg-safe
 # design. Do NOT use this for the competition submission.
 _TH_SCALE = 0.75
 TH_S = [(s, v * _TH_SCALE) for s, v in [(0.00,53),(0.07,46),(0.14,66),(0.21,46),(0.29,48),(0.36,90),(0.43,64),
@@ -482,6 +482,29 @@ def _try_bool(fn, old):
     return old, False
 
 
+PIN_FLAT = 0.6    # mm flat along the pin: it prints LYING on it, layers along its length
+
+
+def _d_pin(length, start, direction):
+    """a pin with a 0.6 mm flat along its length, so it prints lying down:
+    its layers then run along the pin, and it is loaded in shear ACROSS the
+    layers' strong direction. Printed standing, a 155 mm dia-11 rod wobbles
+    and its layer lines lie exactly in the shear plane -- its weakest way."""
+    pin = cq.Solid.makeCylinder(PIN_R, length, Vector(0, 0, 0), Vector(0, 0, 1))
+    slab = cq.Solid.makeBox(4 * PIN_R, 2 * PIN_R + PIN_FLAT, length + 2.0,
+                            Vector(-2 * PIN_R, -3 * PIN_R, -1.0))
+    pin = big(pin.cut(slab))
+    d = np.asarray(direction, float); d = d / np.linalg.norm(d)
+    z = np.array([0.0, 0.0, 1.0])
+    v = np.cross(z, d); s = float(np.linalg.norm(v)); c = float(z @ d)
+    if s < 1e-9:
+        if c < 0:
+            pin = pin.rotate(Vector(0, 0, 0), Vector(1, 0, 0), 180.0)
+    else:
+        pin = pin.rotate(Vector(0, 0, 0), Vector(*(v / s)), math.degrees(math.atan2(s, c)))
+    return pin.translate(Vector(*start))
+
+
 def _checked(new, old, what):
     """keep a boolean result only if it is a valid solid that didn't collapse;
     otherwise repair it, or keep the previous shape and log the problem."""
@@ -735,14 +758,23 @@ def build():
             peg = frustum(cc - ax * TEN_ROOT, ax, r_cut + slope * TEN_ROOT, tip, P + TEN_ROOT)
             prot = frustum(cc, ax, r_cut, tip, P)
             root = frustum(cc - ax * TEN_ROOT, ax, r_cut + slope * TEN_ROOT, r_cut, TEN_ROOT)
+            r_end = r_cut - slope * (P + SOCK_EXTRA) + TEN_CLR
             sock = frustum(cc - ax * 0.5, ax, r_cut + slope * 0.5 + TEN_CLR,
-                           r_cut - slope * (P + SOCK_EXTRA) + TEN_CLR, P + 0.5 + SOCK_EXTRA)
+                           r_end, P + 0.5 + SOCK_EXTRA)
+            # the socket ends in a 45-degree point (like a drilled hole), not a
+            # flat ceiling: a flat ceiling facing the bed makes the slicer grow
+            # support up INTO the socket; a 45-degree cone prints unsupported
+            end = cc + ax * (P + SOCK_EXTRA)
+            cap = cq.Solid.makeCone(r_end, 0.0, r_end, Vector(*end), Vector(*ax))
+            sock = big(sock.fuse(cap))
             # the socket PLUS a 2 mm wall all round it must lie inside the
             # neighbour -- not just the hole itself (no paper-thin skin)
             probe = frustum(cc + ax * 0.3, ax, r_cut + TEN_CLR + WALL_MIN,
-                            r_cut - slope * (P + SOCK_EXTRA) + TEN_CLR + WALL_MIN,
-                            P + SOCK_EXTRA - 0.3)
-            f_sock = sum(_inside(h, probe) for h in host_sock)
+                            r_end + WALL_MIN, P + SOCK_EXTRA - 0.3)
+            probe_cap = cq.Solid.makeCone(r_end + WALL_MIN, 0.0, r_end + WALL_MIN,
+                                          Vector(*end), Vector(*ax))
+            f_sock = min(sum(_inside(h, probe) for h in host_sock),
+                         sum(_inside(h, probe_cap) for h in host_sock))
             f_root = sum(_inside(h, root) for h in host_root)
             f_own = sum(_inside(h, prot) for h in own_body)
             f_keep = sum(_inside(k, sock) for k in keep_out)
@@ -754,6 +786,7 @@ def build():
         why = (f"socket {f_sock:.2f}, root {f_root:.2f}, self {f_own:.2f}, far-end {f_keep:.3f}")
         return peg, sock, r_cut, P, ok, why
 
+    pin_joints = {}
     for c in range(1, nseg):                     # cut between seg c-1 and seg c
         ne = np.array(tangent(cuts[c])); ne = ne / (np.linalg.norm(ne) + 1e-9)
         A, B = seg[c - 1], seg[c]
@@ -821,25 +854,61 @@ def build():
                 B[kb_t] = _checked(big(B[kb_t].cut(sock)), B[kb_t], name + " socket")
             except Exception:
                 BUILD_PROBLEMS.append(name + ": socket cut failed")
-            # dia 10 PIN through socket + peg -> the peg cannot be pulled out
-            if want_pin:
-                pax = np.cross(ne, [0.0, 0.0, 1.0])
-                if np.linalg.norm(pax) < 1e-6:
-                    pax = np.array([0.0, 1.0, 0.0])
-                pax = pax / (np.linalg.norm(pax) + 1e-9)
-                pp = cc + ne * (P * PIN_POS)
-                ph = cq.Solid.makeCylinder(PIN_R + PIN_CLR, 400,
-                                           Vector(*(pp - pax * 200.0)), Vector(*pax))
-                # the hole runs across the full width, so it goes through every
-                # half it crosses (a pin must never collide with the neighbour)
-                for grp in (A, B):
-                    for kk in list(grp):
-                        if grp[kk] is None:
-                            continue
-                        try: grp[kk] = _checked(big(grp[kk].cut(ph)), grp[kk], name + " pin hole")
-                        except Exception: pass
-                pins.append(cq.Solid.makeCylinder(PIN_R, 150,
-                            Vector(*(pp - pax * 75.0)), Vector(*pax)))
+            if want_pin:                     # pins are laid out after the loop
+                pin_joints.setdefault(c, []).append((cc + ne * (P * PIN_POS), sda, r_cut))
+
+    # 2b) PINS at the load-path joints. One straight hole per joint, on the
+    #     line through BOTH halves' pegs (it crosses each peg), drilled in from
+    #     each side face and STOPPING 0.5 mm short of the centre seam -- so
+    #     each pin slides in until it bottoms out, the seam's glue face stays
+    #     whole, and nothing sticks out. (An earlier version gave each half a
+    #     150 mm pin centred on its own peg: two pins stuck 12-18 mm out of the
+    #     chair's side and two others met in the same hole at the seam.)
+    #     All four pins share one length, long enough to pass every peg.
+    pin_plan = []
+    for c, pl in sorted(pin_joints.items()):
+        if len(pl) != 2:
+            BUILD_PROBLEMS.append(f"cut {c}: pin joint needs exactly two pegs (L+R), got {len(pl)}")
+            continue
+        pl = sorted(pl, key=lambda x: x[1])
+        o = pl[0][0]
+        axis = pl[1][0] - o; axis = axis / (np.linalg.norm(axis) + 1e-9)
+        Cs, wv, _ = _frame(cuts[c]); Cs = np.array(Cs.toTuple()); w = np.array(wv.toTuple())
+        t_seam = float((Cs - o) @ w) / float(axis @ w)
+        line = cq.Solid.makeCylinder(0.25, 1600.0, Vector(*(o - axis * 800.0)), Vector(*axis))
+        for pp, sd, r_peg in pl:
+            try:
+                chord = raw[c][sd].intersect(line)
+                ts = [float((np.array(v.toTuple()) - o) @ axis) for v in chord.Vertices()]
+            except Exception:
+                ts = []
+            if not ts:
+                BUILD_PROBLEMS.append(f"cut {c}: could not measure the pin line through side {sd}")
+                continue
+            sgn = 1.0 if float((pp - o) @ axis) > t_seam else -1.0   # outward along the axis
+            t_out = max(ts) if sgn > 0 else min(ts)
+            t_stop = t_seam + sgn * 0.5
+            avail = abs(t_out - t_stop) - 1.0
+            t_peg = float((pp - o) @ axis)
+            need = abs(t_peg - t_stop) + r_peg + 8.0
+            pin_plan.append((c, sd, o, axis, sgn, t_stop, t_out, avail, need))
+    if pin_plan:
+        pin_len = min(p[7] for p in pin_plan)
+        pin_len = min(pin_len, 200.0)
+        if pin_len < max(p[8] for p in pin_plan):
+            BUILD_PROBLEMS.append(f"pins: no single length fits every pin hole "
+                                  f"(max {pin_len:.0f} mm, need {max(p[8] for p in pin_plan):.0f})")
+        for c, sd, o, axis, sgn, t_stop, t_out, avail, need in pin_plan:
+            start = o + axis * t_stop
+            hole_len = abs(t_out - t_stop) + 6.0                    # open at the side face
+            hole = cq.Solid.makeCylinder(PIN_R + PIN_CLR, hole_len, Vector(*start), Vector(*(axis * sgn)))
+            for grp in (seg[c - 1], seg[c]):
+                if grp.get(sd) is not None:
+                    try: grp[sd] = _checked(big(grp[sd].cut(hole)), grp[sd], f"cut {c} pin hole")
+                    except Exception: BUILD_PROBLEMS.append(f"cut {c}: pin hole failed")
+            pins.append(_d_pin(pin_len, start, axis * sgn))
+            JOINT_REPORT.append((f"pin cut {c} side {sd}: {pin_len:.0f} mm, "
+                                 f"recessed {avail + 1.0 - pin_len:.0f} mm from the side face", 0.0, 0.0, True))
 
     # 3) lengthwise (L/R) tenon on the seam -- only where the two halves'
     #    seam faces actually coincide (no fork splay anywhere on the segment).
@@ -1029,8 +1098,8 @@ def main():
         fh.write("\ncrosswise joint (baguette-cut): conical peg dia 27 at the face, 22 mm into the "
                  "neighbour's socket, + two-part epoxy on the whole face\n")
         fh.write("lengthwise joint (L/R seam): transverse peg up to dia 20 + epoxy\n")
-        fh.write(f"PIN dia {2 * PIN_R:.0f}: {len(pins)}x, printed SOLID (100% infill), "
-                 f"one on each side of the lumbar (the most loaded joint)\n")
+        fh.write(f"PIN dia {2 * PIN_R:.0f}: {len(pins)}x, printed SOLID (100% infill) lying on its flat, "
+                 f"2 per lumbar joint, slid in from each side face until it stops\n")
 
     print(f"\nBOARD LEGEND: {len(legend)} items (limit 49)   standing: {nvert}")
     print("does not fit:", bad if bad else "none — all OK")
