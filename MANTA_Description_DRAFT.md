@@ -14,7 +14,7 @@ floor and easing toward the crown, capped where you sit so they never press into
 
 ## Biomimicry as structure, not ornament
 
-Each rule sets the section, and each carries load:
+Each rule carries load:
 
 - **Wolff's law** — thickness follows the bending moment: 84 mm at the lumbar
   knot, 50 mm at the knee, a 32 mm blade at the crown.
@@ -40,13 +40,13 @@ one printer, ~90 €.
 
 Cuts and joints are computed, not drawn by hand. The script slices the
 ribbon **crosswise** by length and curvature, keeping every cut ≥ 70 mm from
-the knee and lumbar where bending peaks, so those knots sit whole,
-mid-segment. Every joint is a full solid cross-section (7,000–17,000 mm²),
+the knee and lumbar, where bending peaks. Every joint is a full solid cross-section (7,000–17,000 mm²),
 epoxied, with a self-centring conical peg sized to the local thickness,
 centred on its face, shrunk until its socket keeps a 2 mm wall.
 Wide segments split along a flute-hidden keel. Only the two most-loaded
-lumbar joints add a solid Ø11 pin. Every part's number is engraved on a glue face. A virtual assembly
-verifies every peg seats in its neighbour.
+lumbar joints add a solid Ø11 pin. Every part's number is engraved on a glue face.
+One command (manta_verify.py) re-checks it all: strength, a **virtual
+assembly** (pegs seated, 2 mm walls, no overlaps), bed fit, real-slicer support.
 
 ## Stability and load
 
@@ -59,5 +59,5 @@ weakest glued check 2.1×; with no glue at all, peg and pin still carry
 
 Nothing in nature repeats, so no two parts here do either: all 41
 segments are geometrically unique (script-verified). Change
-the tables and the same script regenerates a leaner chair, joints and
-load checks included; a 70 kg, half-filament variant is in the repo (anonymised source link below).
+the tables and the script regenerates a leaner chair with its joints and
+checks; a 70 kg, half-filament variant is in the repo (link below).
