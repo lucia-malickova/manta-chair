@@ -107,6 +107,14 @@ def scene(actors, fname, size, elev, azim, parallel=True, labels=(), legend=None
 
 # ---- exploded: each segment offset outward from the chair's centre ----
 segs = sorted(glob.glob(f"{SRC}/SEG_*.stl"))
+# a part's number = its line in PARTS_LIST.txt (the Board key, the template
+# cell, the number engraved on it) -- NOT its position in the sorted file
+# list: the piece split off at the crossing is SEG_14B but number 43
+_num = {}
+for _l in open(f"{SRC}/PARTS_LIST.txt", encoding="utf-8"):
+    _p = _l.split()
+    if len(_p) > 1 and _p[0].endswith(".") and _p[0][:-1].isdigit():
+        _num[_p[1]] = int(_p[0][:-1])
 pds = [read(p) for p in segs]
 allb = np.array([pd.GetBounds() for pd in pds])
 C = np.array([allb[:, 0].min()+allb[:, 1].max(), allb[:, 2].min()+allb[:, 3].max(),
@@ -126,7 +134,7 @@ for i, (pd, bnd, path) in enumerate(zip(pds, allb, segs), start=1):
     # number every part, matching the Board key / template cell numbering
     out_bnd = tp.GetOutput().GetBounds()
     lp = ((out_bnd[0]+out_bnd[1])/2, (out_bnd[2]+out_bnd[3])/2, out_bnd[5] + 30)
-    num_labels.append((lp, str(i)))
+    num_labels.append((lp, str(_num.get(os.path.basename(path)[:-4], i))))
 legend = [(st.ZONE_NAMES[z], st.ZONE_COLORS[z]) for z in sorted(used_zones)]
 scene(acts, "b_exploded.png", (2600, 2200), 16, -62, parallel=True, labels=num_labels, legend=legend)
 

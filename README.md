@@ -40,8 +40,8 @@ python manta_verify.py --fast     # skips virtual assembly + PrusaSlicer (~5 min
 python manta_verify.py light      # one variant
 ```
 
-It prints PASS/FAIL for strength, the print files (42 parts, all inside the
-Prusa CORE One volume), peg clearance in the STLs, the virtual assembly, the
+It prints PASS/FAIL for strength, the print files (43 parts, all inside the
+Prusa CORE One volume), peg clearance in the STLs, self-crossing, the virtual assembly, the
 support PrusaSlicer really adds (< 2 %, < 0.5 g inside holes), and the
 description/package limits — and ends with `ALL CHECKS PASSED` or the list
 of what failed.
@@ -82,16 +82,16 @@ at every cut, and a solid dia 11 pin only at the lumbar joints.
 
 ## Printing the parts
 
-`TEAMID_Assembly.stl` is the **competition submission** format: all 42 parts
+`TEAMID_Assembly.stl` is the **competition submission** format: all 43 parts
 placed inside the official `3D_Template.stl` grid, because the brief
 requires that. That template geometry is a non-solid reference grid (lines +
 text, not a printable object) — a slicer will still try to load it alongside
 your parts, which is confusing and pointless for an actual print.
 
 For printing at home, use [`MANTA_RIBBON/`](MANTA_RIBBON) instead: the same
-42 parts, no template geometry mixed in. Each file is named
+43 parts, no template geometry mixed in. Each file is named
 `NN_SEG_xxx.stl`, where `NN` is the part number from the Board's key and the
-exploded-view diagram (`01_SEG_00L.stl` = part 1, `42_PIN.stl` = part 42,
+exploded-view diagram (`01_SEG_00L.stl` = part 1, `42_PIN.stl` = part 42, `43_SEG_14B.stl` = part 43,
 and so on) — so the file list itself tells you what to print against the
 Board, no cross-referencing needed. `PARTS_LIST.txt` in that folder has the
 same numbering.
@@ -102,8 +102,8 @@ orientation that needs the least support** — import and print as-is.
 Honest numbers, **measured in PrusaSlicer** (`manta_slicer_check.py`
 slices every file and reads the G-code back): a curved, fluted ribbon
 segment can't always be printed with zero support, but it is **almost
-support-free — under 1 % of the filament is support** (competition: 114 g
-of 16.8 kg; `MANTA_LIGHT`: 83 g of 9.0 kg), all of it from the build plate,
+support-free — under 1 % of the filament is support** (competition: 121 g
+of 16.4 kg; `MANTA_LIGHT`: 87 g of 8.9 kg), all of it from the build plate,
 most parts only a few grams. `manta_orient.py` tries ~400 orientations per
 part and keeps the one that fits the Prusa CORE One's 250 x 220 x 270 mm
 volume, stands on a solid base (>= 400 mm² footprint) and needs the least
@@ -114,9 +114,9 @@ way its part lies (`manta_teardrop.py`): a socket lying sideways gets a
 teardrop roof pointing up, a socket end facing up is pointed (every
 surface >= 60°), and the pin holes have no blind end at all — past the
 pin's stop they narrow into a channel that runs out through the centre
-seam. The one exception PrusaSlicer still shows is a ~0.3 g thin branch up
-the pin channel of part 14; the channel is open at both ends, push it out
-with a rod. `PARTS_LIST.txt` and `SLICER_REPORT.txt` in each folder list
+seam. What PrusaSlicer still shows is about half a gram in all of thin branches
+inside holes that are open to the outside (the pin channel of part 14, two
+sockets at the crossing): pull or push them out. `PARTS_LIST.txt` and `SLICER_REPORT.txt` in each folder list
 the support per part.
 
 In the slicer use **"Support on build plate only"** with an overhang
@@ -162,8 +162,8 @@ no epoxy) is **0.5x**, so this variant relies on the epoxy actually being
 applied. With 15% infill the glue faces are only as good as their solid
 skin: use at least 6 top / 5 bottom solid layers and only scuff them with
 P120, don't sand through. Pins still at 100% infill. `MANTA_LIGHT/` is the
-already-generated, numbered result: same 42 parts, same joints, about half
-the filament (**9.0 kg vs 16.8 kg** in PrusaSlicer, ~160 h vs ~470 h; `manta_material_personal.py` for the
+already-generated, numbered result: same 43 parts, same joints, about half
+the filament (**8.9 kg vs 16.4 kg** in PrusaSlicer, ~160 h vs ~460 h; `manta_material_personal.py` for the
 cost at your own filament price). Load-test it before sitting on it
 (30 -> 50 -> 70 kg, each overnight). A demonstration variant, not the
 competition entry — the competition files are untouched.
@@ -218,6 +218,25 @@ socket is split across the seam. Every joint gets a peg in both variants;
 where the part is thin the generator shortens the peg rather than leave less
 than 2 mm of wall (it lists those in its report).
 
+**The crossing — where the ribbon passes through itself.** After the crown
+the ribbon comes back down, crosses the backrest front-to-back and leaves
+behind it as the tail brace to the rear legs. In the one-piece model that is
+a fused X. Cut into parts, the two bands would occupy the same space (an
+earlier version of these files had exactly that: parts 27/29/30 shared up to
+52 % of their volume with the backrest, and no check noticed, because the
+virtual assembly only compared neighbours along the ribbon). Now
+`manta_ribbon.py` step 3c trims every part wherever it would run into an
+*earlier* part of the ribbon, with a 0.25 mm glue gap, so the backrest stays
+whole and the returning band is **epoxied onto it as a saddle**: the loop's
+end (parts 27, 28, 43) on its front, the tail brace (29, 30) on its back.
+Part 29 becomes two pieces; the second one is numbered 43, after the pin, so
+no other number moves. All the rear legs' load goes through the rear saddle
+(56 cm2 competition, 45 cm2 light): the strength check counts half of it and
+still gets 5.2x / 7.3x, and the generator refuses to export if the measured
+saddle is smaller than the check assumes. `python manta_self_check.py`
+compares every pair of non-neighbouring parts in the exported STLs;
+`manta_joint_check.py` now tests every pair too.
+
 **Assembly order matters:** glue each L+R pair of a segment together
 FIRST (their seam peg runs sideways, along that segment's own twisted
 width direction), and only then join the segments crosswise (all crosswise
@@ -238,6 +257,7 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `manta_ergonomics_check.py` — seat/backrest dimensions vs standard reference ranges
 - `manta_stl_fit_check.py` — measures the peg/socket clearance left in the exported print STLs
 - `manta_joint_check.py` — virtual assembly: every peg seats in its neighbour, nothing sticks out or overlaps
+- `manta_self_check.py` — the ribbon crosses itself behind the backrest: no two non-neighbouring parts may share volume
 - `manta_uniqueness_check.py` — proves no two of the 41 segments are geometrically identical
 - `manta_orient.py` — rotates each part to the orientation needing the least support that fits the bed (solid base kept); writes `ORIENT.json`
 - `manta_teardrop.py` — shapes sockets and pin holes for that orientation (teardrop roofs, pointed ends, pin channels) so nothing inside them needs support
@@ -250,4 +270,4 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `MANTA_Description_DRAFT.md` — the description text (edit, then run `manta_pdf.py`)
 - `_board_base.png` — the rasterised official board template (without instructions)
 - `3D_Template.stl` — the official 3D print file template (unmodified, as provided)
-- `MANTA_RIBBON/` — the 42 individual part STLs, clean and ready to print (no template geometry) — see "Printing the parts" above
+- `MANTA_RIBBON/` — the 43 individual part STLs, clean and ready to print (no template geometry) — see "Printing the parts" above

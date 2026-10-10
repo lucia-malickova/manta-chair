@@ -1,0 +1,94 @@
+[
+ {
+  "part": "SEG_12L",
+  "cut_by": [
+   "SEG_09L"
+  ],
+  "shared_mm3": 251.81792899615468,
+  "dropped_mm3": 0.0,
+  "pieces": [
+   {
+    "name": "SEG_12L",
+    "volume_mm3": 212252.55055371678,
+    "saddle_mm2": 180.5103335692739,
+    "side": "front"
+   }
+  ]
+ },
+ {
+  "part": "SEG_13L",
+  "cut_by": [
+   "SEG_08L",
+   "SEG_09L"
+  ],
+  "shared_mm3": 71559.9784401693,
+  "dropped_mm3": 6060.078143573985,
+  "pieces": [
+   {
+    "name": "SEG_13L",
+    "volume_mm3": 92731.32437209535,
+    "saddle_mm2": 3040.1705635852823,
+    "side": "front"
+   }
+  ]
+ },
+ {
+  "part": "SEG_13R",
+  "cut_by": [
+   "SEG_08L",
+   "SEG_08R"
+  ],
+  "shared_mm3": 656.9877952850392,
+  "dropped_mm3": 0.0,
+  "pieces": [
+   {
+    "name": "SEG_13R",
+    "volume_mm3": 183579.73520690328,
+    "saddle_mm2": 260.4304589401485,
+    "side": "front"
+   }
+  ]
+ },
+ {
+  "part": "SEG_14",
+  "cut_by": [
+   "SEG_07L",
+   "SEG_07R",
+   "SEG_08L",
+   "SEG_08R"
+  ],
+  "shared_mm3": 169973.25114429375,
+  "dropped_mm3": 438.88871376177224,
+  "pieces": [
+   {
+    "name": "SEG_14",
+    "volume_mm3": 119354.01055680368,
+    "saddle_mm2": 3074.9871168789277,
+    "side": "rear"
+   },
+   {
+    "name": "SEG_14B",
+    "volume_mm3": 33678.29709572199,
+    "saddle_mm2": 2142.691699230163,
+    "side": "front"
+   }
+  ]
+ },
+ {
+  "part": "SEG_15",
+  "cut_by": [
+   "SEG_07L",
+   "SEG_07R"
+  ],
+  "shared_mm3": 54854.91428851811,
+  "dropped_mm3": 0.0,
+  "pieces": [
+   {
+    "name": "SEG_15",
+    "volume_mm3": 339432.2084204468,
+    "saddle_mm2": 1454.4115409315148,
+    "side": "rear"
+   }
+  ]
+ }
+]

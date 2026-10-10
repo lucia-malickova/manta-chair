@@ -143,6 +143,26 @@ SOCK_TIP = math.tan(math.radians(60))   # socket point: length / radius (60 deg 
 PEG_R_MIN, PEG_P_MIN, PEG_TIP_MIN = 3.5, 8.0, 2.0   # smallest peg worth printing (mm)
 JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM = [], [], []
 PIN_HOLES = []       # (part names, start, direction, length, radius) -> PIN_HOLES.json
+# THE CROSSING: the ribbon curls over the crown, comes back down and passes
+# THROUGH the backrest on its way to the rear legs. In the one-piece model
+# that is a fused X; cut into parts, the two bands would occupy the same
+# space. So a part is trimmed wherever it would run into an EARLIER part of
+# the ribbon (the backrest stays whole -- it carries the bending), with a
+# glue gap, and is epoxied onto it as a saddle joint.
+CROSS_CLR = 0.25          # mm glue gap of the saddle
+CROSS_MIN_PIECE = 8000.0  # mm3 -- smaller leftovers of a trimmed part are dropped
+CROSSING = []             # report rows, one per trimmed part
+RAW_FINAL = {}            # (k, sd) -> the part's reference body (its loft, trimmed at the crossing)
+_TAGS = {-1: "L", 1: "R", 0: ""}
+
+
+def base_side(sd):
+    """extra pieces of a part split by the crossing get side codes >= 100"""
+    return sd if sd < 100 else (sd - 100) // 10 - 1
+
+
+def side_tag(sd):
+    return _TAGS[sd] if sd < 100 else _TAGS[base_side(sd)] + "BCDE"[(sd - 100) % 10]
 PIN_R, PIN_CLR = 5.5, 0.15                   # dia 11 crosswise pin, printed SOLID (100% infill)
 PIN_TIP_L = (PIN_R + PIN_CLR) * SOCK_TIP     # the pin hole's 60-degree pointed blind end
 # each part's print orientation (written by manta_orient.py): pin holes get a
@@ -701,6 +721,7 @@ def build():
     pins = []
     global JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM, PIN_HOLES
     JOINT_REPORT, BUILD_PROBLEMS, JOINT_GEOM, PIN_HOLES = [], [], [], []
+    CROSSING.clear(); RAW_FINAL.clear()
     try:
         from shapely.geometry import Polygon, Point
     except Exception:
@@ -1004,6 +1025,128 @@ def build():
         except Exception:
             BUILD_PROBLEMS.append(name + ": socket cut failed")
 
+    # 3c) THE CROSSING (see CROSS_CLR above). A part is cut back wherever its
+    #     loft shares volume with the loft of a part at least two segments
+    #     EARLIER along the ribbon: 6 copies of that loft, each shifted by
+    #     the glue gap along one axis, are cut away (= the loft grown by the
+    #     gap). Pegs and sockets inside the removed volume go with it; what
+    #     is left of them still mates, both sides being cut by the same shape.
+    def _bb_apart(a, b):
+        p, q = a.BoundingBox(), b.BoundingBox()
+        return (p.xmin > q.xmax or q.xmin > p.xmax or p.ymin > q.ymax or q.ymin > p.ymax
+                or p.zmin > q.zmax or q.zmin > p.zmax)
+
+    _shift = [Vector(*(sg * CROSS_CLR * e)) for e in np.eye(3) for sg in (1.0, -1.0)]
+
+    def _cut_all(pieces, cutter, grown):
+        out = []
+        for p in pieces:
+            cur = [p]
+            for c in ([cutter.translate(v) for v in _shift] if grown else [cutter]):
+                nxt = []
+                for q in cur:
+                    try:
+                        nxt += [x for x in q.cut(c).Solids() if abs(x.Volume()) > 1.0]
+                    except Exception:
+                        BUILD_PROBLEMS.append("crossing: a trim cut failed")
+                        nxt.append(q)
+                cur = nxt
+            out += cur
+        return out
+
+    def _saddle_area(piece, cutters):
+        """mm2 of the piece's surface that faces the part it is glued onto:
+        every triangle of its mesh lying within the glue gap of a cutter"""
+        import trimesh
+
+        def _m(s):
+            v, f = s.tessellate(0.4, 0.4)
+            return trimesh.Trimesh(np.array([q.toTuple() for q in v]), np.array(f), process=False)
+        pm = _m(piece)
+        near = np.zeros(len(pm.faces), dtype=bool)
+        for c in cutters:
+            d = trimesh.proximity.signed_distance(_m(c), pm.triangles_center)
+            near |= np.abs(d) < CROSS_CLR + 0.2
+        return float(pm.area_faces[near].sum())
+
+    trimmed_by = {}
+    for k2 in range(nseg):
+        for s2 in [s for s in seg[k2] if seg[k2][s] is not None]:
+            hit = []
+            for k1 in range(k2 - 1):                      # earlier, and not a neighbour
+                for s1 in [s for s in seg[k1] if seg[k1][s] is not None and raw[k1].get(s) is not None]:
+                    if _bb_apart(seg[k2][s2], raw[k1][s1]):
+                        continue
+                    try:                                  # the FINISHED part: its pegs count too
+                        iv = vol(seg[k2][s2].intersect(raw[k1][s1]))
+                    except Exception:
+                        iv = 1e9
+                    if iv > 5.0:
+                        hit.append((k1, s1, iv))
+            if not hit:
+                continue
+            nm = f"SEG_{k2:02d}{_TAGS[s2]}"
+            cutters = [raw[k1][s1] for k1, s1, _ in hit]
+            pieces, ref = [seg[k2][s2]], [raw[k2][s2]]
+            for c in cutters:
+                pieces = _cut_all(pieces, c, True)
+                ref = _cut_all(ref, c, True)      # (exact cuts fail where two cutters share a face)
+            left = sum(vol(p.intersect(c)) for p in pieces for c in cutters)
+            if left > 5.0:
+                BUILD_PROBLEMS.append(f"{nm}: still shares {left:.0f} mm3 with the part it crosses")
+            pieces.sort(key=lambda q: -abs(q.Volume()))
+            keep = [p for p in pieces if abs(p.Volume()) >= CROSS_MIN_PIECE] or pieces[:1]
+            dropped = sum(abs(p.Volume()) for p in pieces[len(keep):])
+            keys = [s2] + [100 + 10 * (s2 + 1) + j for j in range(len(keep) - 1)]
+            rows = []
+            for key, p in zip(keys, keep):
+                if not p.isValid():
+                    BUILD_PROBLEMS.append(f"{nm}: invalid solid after the crossing trim")
+                seg[k2][key] = p
+                best = max(ref, key=lambda r: vol(r.intersect(p))) if ref else None
+                RAW_FINAL[(k2, key)] = best
+                sad = _saddle_area(p, cutters)
+                # in front of the part it is glued onto, or behind it (x = forward)
+                where = "front" if p.Center().x > np.mean([c.Center().x for c in cutters]) else "rear"
+                rows.append((f"SEG_{k2:02d}{side_tag(key)}", abs(p.Volume()), sad, where))
+            trimmed_by[(k2, s2)] = (cutters, keys)
+            CROSSING.append({"part": nm, "cut_by": [f"SEG_{k1:02d}{_TAGS[s1]}" for k1, s1, _ in hit],
+                             "shared_mm3": float(sum(iv for _, _, iv in hit)),
+                             "dropped_mm3": float(dropped),
+                             "pieces": [{"name": n, "volume_mm3": float(v), "saddle_mm2": float(a),
+                                         "side": w} for n, v, a, w in rows]})
+
+    # joints of trimmed parts: trim their recorded peg + socket the same way,
+    # and point them at the piece that now carries them
+    if trimmed_by:
+        kept_geom = []
+        for name, peg, sock, cc, ax, a_key, b_keys in JOINT_GEOM:
+            touched = [key for key in [a_key] + list(b_keys) if key in trimmed_by]
+            if not touched:
+                kept_geom.append((name, peg, sock, cc, ax, a_key, b_keys))
+                continue
+            cs = [c for key in touched for c in trimmed_by[key][0]]
+            p2, s2_ = [peg], [sock]
+            for c in cs:
+                p2 = _cut_all(p2, c, True)
+                s2_ = _cut_all(s2_, c, True)
+            if sum(abs(x.Volume()) for x in p2) < 0.5 * vol(peg):
+                JOINT_REPORT.append((name + " -> inside the crossing: glued on the saddle instead",
+                                     0.0, 0.0, True))
+                continue                                   # the saddle replaces this peg
+            peg2 = max(p2, key=lambda x: abs(x.Volume()))
+            sock2 = max(s2_, key=lambda x: abs(x.Volume())) if s2_ else sock
+
+            def _owner(key, near):
+                if key not in trimmed_by:
+                    return key
+                k_ = key[0]
+                return (k_, max(trimmed_by[key][1], key=lambda kk: vol(seg[k_][kk].intersect(near))))
+            ball = cq.Solid.makeSphere(22.0, Vector(*cc))
+            kept_geom.append((name, peg2, sock2, cc, ax, _owner(a_key, peg2),
+                              [_owner(bk, ball) for bk in b_keys]))
+        JOINT_GEOM[:] = kept_geom
+
     # 4) output + a final sanity gate on every part: valid solid, and its
     #    volume still close to its own raw loft (a joint may add a peg or
     #    remove a socket -- it must never eat the part itself)
@@ -1013,8 +1156,10 @@ def build():
         for sd, sol in seg[k].items():
             if sol is None or vol(sol) < 500.0:
                 continue
-            tag = {-1: "L", 1: "R", 0: ""}[sd]
-            v0 = vol(raw[k][sd]) if raw[k].get(sd) is not None else 0.0
+            tag = side_tag(sd)
+            RAW_FINAL.setdefault((k, sd), raw[k].get(sd))
+            ref = RAW_FINAL[(k, sd)]
+            v0 = vol(ref) if ref is not None else 0.0
             ratio = vol(sol) / v0 if v0 > 0 else 1.0
             if not sol.isValid():
                 BUILD_PROBLEMS.append(f"SEG_{k:02d}{tag}: invalid solid after joints")
@@ -1062,6 +1207,15 @@ def main():
         print(f"   {n}: peg r {r:.1f} mm, protrudes {p:.1f} mm")
     for n in glued_only:
         print(f"   {n}")
+    # the crossing: the rear legs hang on the saddle glued to the back of the
+    # backrest -- its measured area must cover what the strength check assumes
+    rear = sum(p["saddle_mm2"] for c in CROSSING for p in c["pieces"] if p["side"] == "rear")
+    if CROSSING:
+        print(f"crossing: {len(CROSSING)} parts trimmed against the backrest, rear saddle "
+              f"{rear / 100:.0f} cm2 (strength check assumes {_sc.SADDLE_A / 100:.0f})")
+        if rear < _sc.SADDLE_A:
+            BUILD_PROBLEMS.append(f"crossing: rear saddle is {rear:.0f} mm2, the strength check "
+                                  f"assumes {_sc.SADDLE_A:.0f}")
     if BUILD_PROBLEMS:
         raise SystemExit("\n!! REFUSING TO EXPORT -- joint geometry problems:\n   "
                          + "\n   ".join(BUILD_PROBLEMS) + "\n")
@@ -1089,9 +1243,10 @@ def main():
     print(f"{'PART':10s}{'X':>7s}{'Y':>7s}{'Z':>7s}   note")
     laid, legend, bad = [], [], []
     gx, gy, col = 250.0, 260.0, 7      # 7 columns = matches the 49-slot board grid
-    for idx, (nm, sol, vert, seg_k, seg_sd) in enumerate(items):
+    def emit(nm, sol, vert, seg_k, seg_sd):
         if vol(sol) < 1000.0:
-            print(f"{nm:10s}   (empty — skipping)"); continue
+            print(f"{nm:10s}   (empty — skipping)"); return
+        idx = len(laid)
         trailing = seg_k < nseg - 1
         label_c = (seg_k + 1) if trailing else seg_k
         label_s = cuts[label_c]
@@ -1102,7 +1257,7 @@ def main():
         c_l = np.array(center(label_s))
         on_face = [g[3] for g in JOINT_GEOM if abs(float((g[3] - c_l) @ ne_l)) < 1.0]
         lbl = None if label_c in pin_j else _label_solid(
-            label_s, seg_sd, str(part_num), trailing, avoid=on_face)
+            label_s, base_side(seg_sd), str(part_num), trailing, avoid=on_face)
         if lbl is not None:
             sol, _ok = _try_bool(lambda: sol.cut(lbl), sol)   # engraved; skip if it fails
         bb = sol.BoundingBox()
@@ -1123,19 +1278,26 @@ def main():
         print(f"{nm:10s}{bb.xlen:7.0f}{bb.ylen:7.0f}{bb.zlen:7.0f}   "
               f"{'DOES NOT FIT' if not fit else ('standing' if vert else '')}")
 
+    for it in [x for x in items if x[4] < 100]:
+        emit(*it)
+
     if pins:
         cq.exporters.export(pins[0], f"{OUT}/coarse/PIN.stl", tolerance=0.2, angularTolerance=0.4)
         cq.exporters.export(pins[0], f"{OUT}/PIN.stl", tolerance=PRINT_TOL, angularTolerance=PRINT_ANG)
-        k = len(items); r, c = divmod(k, col); pb = pins[0].BoundingBox()
+        k = len(laid); r, c = divmod(k, col); pb = pins[0].BoundingBox()
         laid.append(pins[0].translate(Vector(c * gx - (pb.xmin + pb.xmax) / 2,
                                              -r * gy - (pb.ymin + pb.ymax) / 2, -pb.zmin)))
         legend.append(("PIN", False))
+    for it in [x for x in items if x[4] >= 100]:      # pieces split off at the crossing: 43, 44...
+        emit(*it)
 
     cq.exporters.export(cq.Compound.makeCompound(laid), f"{OUT}/MANTA_Assembly.stl",
                         tolerance=STL_TOL, angularTolerance=STL_ANG)
 
     nvert = sum(1 for _, v in legend if v)
     import json
+    with open(f"{OUT}/CROSSING.json", "w", encoding="utf-8") as fh:
+        json.dump(CROSSING, fh, indent=1)       # what the crossing trimmed, saddle areas
     with open(f"{OUT}/PIN_HOLES.json", "w", encoding="utf-8") as fh:
         json.dump(PIN_HOLES, fh, indent=1)      # manta_orient.py: pin holes are teardrops
     with open(f"{OUT}/PARTS_LIST.txt", "w", encoding="utf-8") as fh:

@@ -342,6 +342,13 @@ def main(folder, gen_name="manta_ribbon", reuse=False):
         m = trimesh.load(f)
         key = re.sub(r"^\d+_", "", os.path.basename(f))[:-4]
         mine = [ph for ph in pin_holes if key in ph["parts"]]
+        # a piece split off at the crossing (SEG_14B) lies like the part it came from
+        sib = re.sub(r"[B-E]$", "", key) if re.fullmatch(r"SEG_\d+[LR]?[B-E]", key) else key
+        if reuse and key not in saved and sib in saved:
+            R0 = np.array(saved[sib])
+            turn = bed_turn(m, R0)
+            if turn is not None and base_footprint(m, R0) >= 150.0:
+                saved[key] = (rot_z(turn) @ R0).tolist()
         if reuse and key in saved:
             R = np.array(saved[key])
             sa, sh = support_area(m, R, hole_faces(m, mine))

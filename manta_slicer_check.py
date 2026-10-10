@@ -60,7 +60,7 @@ def read_gcode(path):
         if line.startswith(";Z:"):
             z = float(line[3:])
             continue
-        if not line.startswith("G1"):
+        if not line.startswith(("G1 ", "G2 ", "G3 ")):      # G2/G3 = arcs (arc fitting): gyroid, round walls
             continue
         mx = re.search(r"X([-\d.]+)", line)
         my = re.search(r"Y([-\d.]+)", line)
@@ -106,9 +106,23 @@ def in_hole(mesh, pts):
     return res
 
 
-def main(folder):
+def main(folder, only=None):
+    """only = part names to slice again (e.g. ['SEG_14', 'SEG_15']); the other
+    rows are taken from the existing SLICER_REPORT.txt"""
+    old = {}
+    rep_path = os.path.join(folder, "SLICER_REPORT.txt")
+    if only is not None and os.path.exists(rep_path):
+        for line in open(rep_path, encoding="utf-8"):
+            p = line.rstrip("\n").split("\t")
+            if len(p) >= 7 and p[0].endswith(".stl"):
+                old[p[0]] = (p[0], int(p[1]), int(p[2]), float(p[3]), float(p[4]), float(p[5]),
+                             float(p[6]), 4 if "PIN" in p[0] else 1)
     rows = []
     for stl in sorted(glob.glob(os.path.join(folder, "*.stl"))):
+        base = os.path.basename(stl)
+        if only is not None and base in old and not any(base[3:-4] == n for n in only):
+            rows.append(old[base])
+            continue
         out = os.path.join(WORK, "_chk.gcode")
         slice_part(stl, out)
         sup, mod, e_sup, e_mod = read_gcode(out)
@@ -154,4 +168,4 @@ def main(folder):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[3].split(",") if len(sys.argv) > 3 and sys.argv[2] == "--only" else None)

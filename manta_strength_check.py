@@ -186,6 +186,17 @@ chk("Front leg: buckling", Fl, Pcr / SF, "N")
 Ft = (Hb + W * 0.25) / math.sin(math.radians(38))   # brace tilt ~38 deg from vertical
 chk("Tail-brace: compression", Ft / A(TAIL_W, TAIL_TH), sa, "MPa")
 
+# 9b) THE CROSSING — the ribbon curls back and passes through the backrest;
+#     cut into parts, the tail brace is trimmed to the backrest's shape and
+#     EPOXIED ONTO ITS BACK as a saddle (manta_ribbon.py, step 3c). Every
+#     newton the rear legs carry goes through that glue line: the backrest
+#     reaction plus 60 % of the sitter's weight. Only half of the measured
+#     saddle is counted (fluted surfaces, 0.25 mm glue gap); the generator
+#     refuses to export if the real saddle is smaller than SADDLE_A.
+SADDLE_A = 5400.0      # mm2, rear saddle (generator measures it: CROSSING.json)
+F_saddle = (Hb + W * 0.60) / math.sin(math.radians(38))
+chk("Crossing: saddle epoxy shear", F_saddle / (0.5 * SADDLE_A), esh, "MPa")
+
 # 10) TAIL-BRACE — buckling
 Pcrt = math.pi**2 * E_MPA * I(TAIL_W, TAIL_TH) / (2 * TAIL_FREE) ** 2
 chk("Tail-brace: buckling", Ft, Pcrt / SF, "N")

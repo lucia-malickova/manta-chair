@@ -76,8 +76,8 @@ def main(src, dst, light=False):
                        f"SUPPORT from build plate (~{g:.0f} g)" if g >= 0.5 else
                        "a few specks of support from the build plate (< 1 g)")
                 if g_hole >= 0.05:
-                    tag += (f"  -- ~{g_hole:.1f} g is a thin branch up a pin channel: it is open at "
-                            f"both ends, push it out with a rod")
+                    tag += (f"  -- ~{g_hole:.1f} g of it is a thin branch inside a hole that is open "
+                            f"to the outside: pull or push it out")
             elif nm in sup:
                 a = sup[nm]
                 tag = "no support" if a <= SUPPORT_FREE else f"SUPPORT from build plate (~{a:.0f} cm2)"

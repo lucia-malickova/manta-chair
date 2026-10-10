@@ -193,11 +193,11 @@ wrap((170, 4770), "Exploded — 41 segments, no two alike. Cuts and pegs are com
      F(28), SUB, maxw=2800)
 
 steps = [
- ("1", "Lay out by zone", "Every part has its number (1-42) ENGRAVED on a glue face. In reading order they form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
+ ("1", "Lay out by zone", "Every part has its number (1-43) ENGRAVED on a glue face. In reading order they form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
  ("2", "Left + right halves FIRST", "Wide segments come in L+R halves. Glue each pair along the centre-line on its transverse peg (up to dia 20) before anything else; the seam is the keel."),
  ("3", "Crosswise joints", "Then join the segments: seat the printed conical peg (dia 27 at the face) in its socket, two-part epoxy over the whole face. No screws."),
  ("4", "Lumbar pins", "Only the two joints beside the lumbar: slide a dia 11 pin in from each side face until it stops (2 per joint) before the epoxy sets."),
- ("5", "Sub-assemble, cure", "Build seat, backrest and each fork-foot separately. Cure 24 h. Then join at the lumbar and the two knees."),
+ ("5", "The crossing, cure", "Where the ribbon returns through the backrest it is trimmed to the backrest's shape: epoxy the loop's end onto its front and the tail brace onto its back (computed saddle, 56 cm2). Build seat, backrest and fork-feet separately, cure 24 h, then join at the lumbar and knees."),
  ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~250 kg."),
 ]
 sx = 3230
@@ -213,17 +213,17 @@ dr.line((5170, 2560, 5170, 4770), fill=TEAL, width=4)
 # ============ 3D PRINTING (right) ============
 section((5250, 2585), "3D PRINTING")
 rows = [
- ("PARTS", "41 segments + 1 pin type (x4)  -  limit 49"),
+ ("PARTS", "41 segments (one prints in two pieces) + 1 pin type (x4)  -  43 of 49"),
  ("PART SIZE", "each <= 212 x 220 x 250 mm"),
- ("SUPPORTS", "almost none: under 1 % of the filament (114 g, PrusaSlicer), from the build plate only; every hole is shaped for how its part lies, so none grows inside"),
+ ("SUPPORTS", "almost none: under 1 % of the filament (121 g, PrusaSlicer), from the build plate only; every hole is shaped for how its part lies, so none grows inside"),
  ("MATERIAL", "PETG"),
  ("LAYER / NOZZLE", "0.20 mm  /  0.4 mm"),
  ("WALLS", "5 perimeters"),
  ("INFILL", "35 % gyroid  (kept low — the ribbon's own bulk carries the load)"),
  ("ADHESIVE", "two-part epoxy (structural)"),
  ("PIN", "dia 11 x 133 mm rod, 100 % infill, printed lying on its flat, x4 (2 lumbar joints)"),
- ("EST. WEIGHT", "~17 kg  -  ~90 EUR in budget filament (PrusaSlicer)"),
- ("BATCH TIME", "~470 h on one printer (PrusaSlicer estimate)"),
+ ("EST. WEIGHT", "~16.5 kg  -  ~90 EUR in budget filament (PrusaSlicer)"),
+ ("BATCH TIME", "~460 h on one printer (PrusaSlicer estimate)"),
 ]
 y = 2680
 for k, v in rows:

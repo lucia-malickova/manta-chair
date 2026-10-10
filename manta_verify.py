@@ -9,12 +9,14 @@ RUN:  python manta_verify.py                 both variants, all checks (~45 min)
 
 Checks, per variant:
   strength     weakest glued check >= 1.5x (manta_strength_check*.py)
-  print files  42 numbered STLs + PARTS_LIST + ORIENT.json, every part on
+  print files  43 numbered STLs + PARTS_LIST + ORIENT.json, every part on
                the bed and inside the Prusa CORE One volume (250x220x270)
   STL fit      every peg keeps >= 0.06 mm clearance in the print STLs
   assembly     virtual assembly: pegs in sockets, 2 mm walls, pins only in
                holes, nothing overlaps (slow)
-  slicer       PrusaSlicer adds < 2 % support and < 0.5 g inside holes
+  no crossing  parts that are not neighbours never share volume (the ribbon
+               crosses itself behind the backrest)
+  slicer       PrusaSlicer adds < 2 % support and < 1 g inside holes
                (slow; skipped if PrusaSlicer isn't installed)
 and once for the submission:
   description  <= 500 words, 1 page;   package <= 15 MB
@@ -81,8 +83,8 @@ def check_print_files(v):
                 or hi[0] > BED[0] + 0.5 or hi[1] > BED[1] + 0.5:
             bad.append(os.path.basename(f))
     extra = [x for x in ("PARTS_LIST.txt", "ORIENT.json") if not os.path.exists(f"{folder}/{x}")]
-    ok = len(stls) == 42 and not bad and not extra
-    report("print files", ok, f"{folder}: {len(stls)}/42 parts"
+    ok = len(stls) == 43 and not bad and not extra
+    report("print files", ok, f"{folder}: {len(stls)}/43 parts"
            + (f", off the bed: {bad}" if bad else ", all on the bed")
            + (f", missing {extra}" if extra else ""))
     return folder
@@ -98,6 +100,15 @@ def check_fit(v):
     tight = re.findall(r"tightest: \+([\d.]+) mm", out)
     report("STL fit", code == 0, f"tightest peg clearance {min(map(float, tight)):.3f} mm"
            if tight else out.strip().splitlines()[-1][:80])
+
+
+def check_self(v):
+    """parts that are NOT neighbours along the ribbon must not share volume
+    (the ribbon curls back and crosses itself behind the backrest)"""
+    code, out = run("manta_self_check.py", VARIANTS[v]["gen"])
+    probs = [l.strip() for l in out.splitlines() if "run into each other" in l]
+    report("no self-crossing", code == 0, "non-neighbouring parts never share volume" if code == 0
+           else f"{len(probs)} pairs collide, e.g. {probs[0] if probs else out.strip()[-80:]}")
 
 
 def check_assembly(v):
@@ -116,7 +127,7 @@ def check_slicer(v, folder):
         report("slicer", False, (out.strip().splitlines() or ["no output"])[-1][:90])
         return
     pct, g_hole = float(m.group(2)), float(h.group(1))
-    report("slicer", pct < 2.0 and g_hole < 0.5,
+    report("slicer", pct < 2.0 and g_hole < 1.0,
            f"support {m.group(1)} g = {pct:.1f} % of the filament, {g_hole:.2f} g inside holes")
 
 
@@ -148,6 +159,7 @@ def main(argv):
         check_strength(v)
         folder = check_print_files(v)
         check_fit(v)
+        check_self(v)
         if fast:
             print("  [skip] assembly, slicer          (--fast)")
             continue

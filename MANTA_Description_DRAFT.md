@@ -10,11 +10,9 @@ frame, no visible assembly. The name is literal: forked feet read as fins,
 the tail-brace as a fluke. The ocean makes most of the oxygen we breathe,
 and the manta ray is one of its health indicators — so the surface carries
 the story too: flutes that follow the ribbon's own motion, bold at the
-floor and easing toward the crown, capped where you sit so they never press into a bone.
+floor and easing toward the crown, capped where you sit.
 
 ## Biomimicry as structure, not ornament
-
-Each rule carries load:
 
 - **Wolff's law** — thickness follows the bending moment: 84 mm at the lumbar
   knot, 50 mm at the knee, a 32 mm blade at the crown.
@@ -22,10 +20,8 @@ Each rule carries load:
   of seat, backrest and tail; every transition filleted.
 - **Spiral fibre** — the flutes follow the stress path and stiffen by
   corrugation; the section twists up to 20° through the backrest.
-- **Shell curvature** — the closed superelliptical section and dished seat
-  carry load in membrane action.
-- **Fiddlehead scroll** — the forward-curled crown closes the backrest into a
-  tube, not an open cantilever.
+- **Shell curvature** — the closed section and dished seat carry load as a shell.
+- **Fiddlehead scroll** — the crown curls forward and returns *through* the backrest: a closed loop.
 - **Buttress roots** — each foot forks into two splayed prongs.
 
 ## Printing
@@ -33,7 +29,7 @@ Each rule carries load:
 41 segments (each ≤ 212 × 220 × 250 mm), auto-oriented for the least
 support: **almost support-free**, under 1 % of the filament (PrusaSlicer),
 none inside the holes — each is shaped for the way its part lies. PETG,
-0.2 mm layers, 5 perimeters, 35 % gyroid, solid pins. ~17 kg, ~470 h on
+0.2 mm layers, 5 perimeters, 35 % gyroid. ~16.5 kg, ~460 h on
 one printer, ~90 €.
 
 ## Assembly — computed joints, no screws
@@ -41,10 +37,11 @@ one printer, ~90 €.
 Cuts and joints are computed, not drawn by hand. The script slices the
 ribbon **crosswise** by length and curvature, keeping every cut ≥ 70 mm from
 the knee and lumbar, where bending peaks. Every joint is a full solid cross-section (7,000–17,000 mm²),
-epoxied, with a self-centring conical peg sized to the local thickness,
-centred on its face, shrunk until its socket keeps a 2 mm wall.
-Wide segments split along a flute-hidden keel. Only the two most-loaded
-lumbar joints add a solid Ø11 pin. Every part's number is engraved on a glue face.
+epoxied, with a self-centring conical peg sized to the local thickness
+and a 2 mm socket wall.
+Only the two most-loaded
+lumbar joints add a solid Ø11 pin. At the crossing the returning band is
+trimmed to the backrest's shape and epoxied on as a saddle. Every part's number is engraved on a glue face.
 One command (manta_verify.py) re-checks it all: strength, a **virtual
 assembly** (pegs seated, 2 mm walls, no overlaps), bed fit, real-slicer support.
 
@@ -58,6 +55,6 @@ weakest glued check 2.1×; with no glue at all, peg and pin still carry
 ## Open design — nothing repeats
 
 Nothing in nature repeats, so no two parts here do either: all 41
-segments are geometrically unique (script-verified). Change
+segments are geometrically unique. Change
 the tables and the script regenerates a leaner chair with its joints and
 checks; a 70 kg, half-filament variant is in the repo (link below).

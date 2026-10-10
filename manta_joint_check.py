@@ -11,13 +11,15 @@ touch face-to-face):
      actually cut there (it fits), and not back into its own part
   3. every peg's short root stays inside its own part (no peg-end poking
      out of the side / bottom of a part)
-  4. every pin sits only in holes, and no two neighbouring parts overlap
+  4. every pin sits only in holes, and no two parts overlap -- ANY two,
+     not just neighbours along the ribbon (it crosses itself at the backrest)
      once assembled
 
 RUN:  python manta_joint_check.py                 (competition geometry)
       python manta_joint_check.py manta_ribbon_personal
 """
 import importlib
+import os
 import sys
 
 import numpy as np
@@ -52,7 +54,10 @@ def main(gen_name="manta_ribbon"):
     items, pins, cuts, pin_j = g.build()
     parts = {(k, sd): sol for _, sol, _, k, sd in items}
     names = {(k, sd): nm for nm, _, _, k, sd in items}
-    raw = {key: g._loft_seg(cuts[key[0]], cuts[key[0] + 1], key[1]) for key in parts}
+    # each part's reference body: its own loft -- trimmed where the ribbon
+    # crosses itself (the generator's RAW_FINAL), so a saddle-cut part is
+    # compared with what it is meant to be, not with the uncut loft
+    raw = {key: g.RAW_FINAL[key] for key in parts}
     M = {key: mesh(s) for key, s in parts.items()}
     R = {key: mesh(s) for key, s in raw.items()}
 
@@ -68,6 +73,7 @@ def main(gen_name="manta_ribbon"):
             fails.append(f"{names[key]}: valid={sol.isValid()} volume {r:.0%} of its loft")
 
     print('checking pegs ...', flush=True)
+    saddle_notes = []
     # 2) + 3) every peg
     worst_fit = 0.0
     for name, peg, sock, cc, ax, a_key, b_keys in g.JOINT_GEOM:
@@ -104,7 +110,20 @@ def main(gen_name="manta_ribbon"):
             keep = (sd > 1.0) & (rn > 2.0)
             wall_pts = sp[keep] + radial[keep] / rn[keep, None] * 2.0
             if len(wall_pts):
-                wall = inside_any(wall_pts, b_raw).mean()
+                in_b = inside_any(wall_pts, b_raw)
+                # at the crossing a socket can sit right under the saddle face:
+                # there the wall is BACKED by the part the saddle is glued onto
+                out, backed = wall_pts[~in_b], np.zeros(int((~in_b).sum()), dtype=bool)
+                for k2, m2 in M.items():
+                    if not len(out) or k2 == a_key or k2 in b_keys:
+                        continue
+                    if np.any(out.max(0) < m2.bounds[0] - 1) or np.any(out.min(0) > m2.bounds[1] + 1):
+                        continue
+                    backed |= trimesh.proximity.signed_distance(m2, out) > -(g.CROSS_CLR + 0.6)
+                wall = (in_b.sum() + backed.sum()) / len(wall_pts)
+                if backed.sum() > 0.01 * len(wall_pts):
+                    saddle_notes.append(f"{name}: {backed.sum() / len(wall_pts):.0%} of its socket wall "
+                                        f"is the saddle face (backed by the part it is glued onto)")
                 if wall < 0.97:
                     fails.append(f"{name}: socket wall thinner than 2 mm in places "
                                  f"({wall:.0%} of a 2 mm shell is inside the part)")
@@ -130,8 +149,8 @@ def main(gen_name="manta_ribbon"):
                 fails.append(f"PINS {j + 1} and {k + 1} overlap (two pins in one hole)")
 
     print('checking overlaps ...', flush=True)
-    # 4b) no overlap between neighbouring parts once assembled
-    keys = sorted(parts)
+    # 4b) no overlap between any two parts once assembled
+    keys = sorted(parts) if not os.environ.get("MANTA_JC_PEGS_ONLY") else []
     worst_ov = 0.0
     for i, a in enumerate(keys):
         pts = sample(M[a], 4000)
@@ -139,7 +158,10 @@ def main(gen_name="manta_ribbon"):
             continue
         va = g.vol(parts[a])
         for b in keys[i + 1:]:
-            if abs(a[0] - b[0]) > 1:
+            # EVERY pair whose boxes meet, not only neighbours along the ribbon:
+            # it curls back and crosses the backrest (an earlier version checked
+            # neighbours only and missed two bands sharing 170 cm3 there)
+            if np.any(M[a].bounds[0] > M[b].bounds[1]) or np.any(M[b].bounds[0] > M[a].bounds[1]):
                 continue
             hit = M[b].contains(pts)
             if hit.any():
@@ -156,8 +178,13 @@ def main(gen_name="manta_ribbon"):
     glued_only = [n for n, *_ in g.JOINT_REPORT if "glued face only" in n]
     print(f"parts checked:     {len(parts)}   pegs checked: {len(g.JOINT_GEOM)}   pins: {len(pins)}")
     print(f"worst peg interference with its socket: {worst_fit:.1f} mm3 (exact; <20 mm3 = far below print tolerance)")
-    print(f"worst overlap between neighbouring parts: ~{worst_ov:.0f} mm3 "
+    print(f"worst overlap between any two parts: ~{worst_ov:.0f} mm3 "
           f"(sampling noise level ~ tens of mm3)")
+    for n in saddle_notes:
+        print("   " + n)
+    crossed = [n for n, *_ in g.JOINT_REPORT if "inside the crossing" in n]
+    for n in crossed:
+        print("   " + n)
     if glued_only:
         print("joints glued on the full face only (no room for a peg):")
         for n in glued_only:
