@@ -115,7 +115,7 @@ for raw in src.splitlines():
             story.append(Spacer(1, 4)); story.append(stat_strip()); story.append(Spacer(1, 5))
             pending_stats = False
         story.append(section_header(line[3:]))
-        if line[3:].strip().lower() in ("stability and load", "engineering that checks itself"):
+        if line[3:].strip().lower() in ("stability and load", "engineering that checks itself", "the algorithm — print only the chair you need"):
             pending_stats = True
         last_block = None
         continue
@@ -149,7 +149,7 @@ def draw_band(c, doc):
     c.setFont("Helvetica-Oblique", 8.3)
     c.setFillColor(colors.HexColor("#a9d3d3"))
     sub1 = "The ocean makes the oxygen we breathe, and it is full of our plastic."
-    sub2 = "MANTA is a wave of it: one ribbon, printed with under 1 % waste."
+    sub2 = "MANTA is a wave of it, made by an algorithm so you print only what you need."
     c.drawString(25 * mm, ph - 26 * mm, sub1)
     c.drawString(25 * mm, ph - 31.5 * mm, sub2)
     c.restoreState()
