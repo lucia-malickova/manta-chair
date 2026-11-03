@@ -661,5 +661,5 @@ dr.text((ax0 + 36, ay1 - 52), "anonymous.4open.science/r/manta-chair-23D4", font
 manta(6300, 4820, 200, 0.18, (36, 92, 120))
 manta(5560, 4850, 110, -0.3, (32, 82, 110))
 
-board.convert("RGB").save(OUTF, "JPEG", quality=86)
+board.convert("RGB").save(OUTF, "JPEG", quality=86, dpi=(300, 300))   # A2 at 300 dpi
 print(f"{OUTF}  {board.size}  {os.path.getsize(OUTF)/1e6:.2f} MB")

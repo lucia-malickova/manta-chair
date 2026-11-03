@@ -33,5 +33,5 @@ im = Image.composite(dark, im, sh)
 
 dr = ImageDraw.Draw(im)
 dr.text((W // 2, H - 300), "MANTA", font=F(128), fill=(226, 229, 236), anchor="mm")
-im.save(OUTF, "JPEG", quality=90)
+im.save(OUTF, "JPEG", quality=90, dpi=(300, 300))   # A2 at 300 dpi
 print(OUTF, im.size, f"{os.path.getsize(OUTF) / 1e6:.2f} MB")
