@@ -4,11 +4,9 @@
 
 ## The idea
 
-MANTA is one continuous ribbon, printed in 43 parts on a home printer and
-glued, with no screws.
-
-At least half of the oxygen we breathe comes from the ocean, so the chair
-is a story of life: a wave that rose from the sea floor. Its forked feet are
+At least half of the oxygen we breathe comes from the ocean, so MANTA is a
+story of life: a wave that rose from the sea floor and stayed, one continuous
+ribbon printed at home in 43 parts and glued without a single screw. Its forked feet are
 the fins of a manta, the ray that tells us how healthy the sea is. From the
 side, legs, seat and back draw an M, for Manta and for *Mare*. Its colour is
 the depth of the water, deep blue at the feet to foam at the crest, and every
