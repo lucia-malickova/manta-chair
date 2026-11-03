@@ -79,12 +79,42 @@ SPINE = [
 W_S = [(0.00,180),(0.08,188),(0.12,202),(0.15,286),(0.19,430),(0.30,428),
        (0.37,336),(0.43,286),(0.49,292),(0.55,312),(0.60,308),(0.65,238),
        (0.70,180),(0.79,148),(0.87,148),(0.94,170),(1.00,190)]
+# ══════════ WHO THE CHAIR IS FOR ══════════
+# The same algorithm makes every MANTA. A preset says who the chair is for;
+# the wall thickness, the print settings and the checks follow from it.
+#   python manta_ribbon.py            -> the competition entry (120 kg)
+#   python manta_ribbon_personal.py   -> the light chair built at home (70 kg)
+#   MANTA_KG=90 MANTA_TH_SCALE=0.9 python manta_ribbon.py
+#                                     -> your own chair: built, checked for
+#                                        90 kg, refused if it would fail
+PRESETS = {
+    "competition": dict(kg=120.0, th_scale=1.00, infill=0.35, walls=5, saddle_a=5400.0,
+                        out="MANTA_RIBBON",
+                        orient=["_print_ready_competition/ORIENT.json", "MANTA_RIBBON/ORIENT.json"],
+                        strength="manta_strength_check"),
+    "light":       dict(kg=70.0, th_scale=0.75, infill=0.15, walls=4, saddle_a=4400.0,
+                        out="MANTA_PERSONAL",
+                        orient=["_print_ready_light/ORIENT.json", "MANTA_LIGHT/ORIENT.json"],
+                        strength="manta_strength_check_personal"),
+}
+VARIANT = globals().get("VARIANT") or os.environ.get("MANTA_VARIANT", "competition")
+PRESET = dict(PRESETS[VARIANT])
+# your own chair: who it is for, how thick, what infill (the two presets never set them)
+for _k, _env in (("kg", "MANTA_KG"), ("th_scale", "MANTA_TH_SCALE"), ("infill", "MANTA_INFILL")):
+    if os.environ.get(_env):
+        PRESET[_k] = float(os.environ[_env])
+if os.environ.get("MANTA_TH_SCALE"):
+    # the glued saddle shrinks with the walls (5400 mm2 at 1.0, 4400 at 0.75);
+    # only an estimate here -- the generator measures the real one and gates on it
+    PRESET["saddle_a"] = 5400.0 - 4000.0 * (1.0 - PRESET["th_scale"])
+
 # section thickness (through) — bending moment (Wolff's law): max at the
 # lumbar, a blade at the crown, a thicker lower brace (compression + moment
-# from the backrest overhang).
-TH_S = [(0.00,53),(0.07,46),(0.14,66),(0.21,46),(0.29,48),(0.36,90),(0.43,64),
+# from the backrest overhang). Scaled by the preset (1.0 = the 120 kg entry).
+TH_S = [(s, v * PRESET["th_scale"]) for s, v in [
+        (0.00,53),(0.07,46),(0.14,66),(0.21,46),(0.29,48),(0.36,90),(0.43,64),
         (0.50,39),(0.57,32),(0.63,24),(0.68,24),(0.74,38),(0.82,47),
-        (0.90,55),(1.00,48)]
+        (0.90,55),(1.00,48)]]
 
 FLUTE_N = 4          # longitudinal flutes — main frequency (fewer = bolder, more dramatic lines)
 # Flowing lines that follow the ribbon's own movement, not a cross-hatched
@@ -161,7 +191,7 @@ PIN_R, PIN_CLR = 5.5, 0.15                   # dia 11 crosswise pin, printed SOL
 PIN_TIP_L = (PIN_R + PIN_CLR) * SOCK_TIP     # the pin hole's 60-degree pointed blind end
 # each part's print orientation (written by manta_orient.py): pin holes get a
 # teardrop roof pointing UP in the print, so no support grows inside them
-ORIENT_FILES = ["_print_ready_competition/ORIENT.json", "MANTA_RIBBON/ORIENT.json"]
+ORIENT_FILES = PRESET["orient"]
 PIN_POS = 0.35        # pin centre at this fraction of the peg length past the cut: close to
                       # the face so enough peg is left beyond it to not tear out
 
@@ -170,7 +200,7 @@ MESH_TOL, MESH_ANG = 0.14, 0.35     # MANTA_Chair.stl (submission + render)
 STL_TOL, STL_ANG   = 0.45, 0.8      # coarse copies -> competition Assembly (size limit)
 PRINT_TOL, PRINT_ANG = 0.03, 0.1    # the parts you PRINT: facets within 0.03 mm, so the
                                     # 0.12 mm peg/socket clearance survives the STL export
-OUT = "MANTA_RIBBON"
+OUT = PRESET["out"]
 # ════════════════════════════════════════════════════════════════
 
 def set_spine(pts):
@@ -262,17 +292,17 @@ recompute_corners()
 # from the same landmarks used everywhere else (knee/lumbar/crown/fork),
 # not eyeballed, so relabelling stays correct if the spine is ever retuned.
 ZONE_NAMES = ["fore-foot fork", "front leg", "seat", "lumbar", "backrest", "tail-foot fork"]
-# ocean palette, but with real hue/lightness steps between zones so they
-# actually read apart at a glance — a narrow teal-on-teal ramp looked like
-# one colour. Lumbar stays a clear amber accent (the one true structural knot).
-ZONE_COLORS = [
-    (0.03, 0.09, 0.20),   # fore-foot fork — near-black navy
-    (0.05, 0.42, 0.68),   # front leg — clear blue
-    (0.02, 0.62, 0.55),   # seat — teal
-    (0.88, 0.58, 0.08),   # lumbar — amber, the one true knot
-    (0.15, 0.50, 0.14),   # backrest — forest green
-    (0.72, 0.86, 0.30),   # tail-foot fork — lime, tip of the curl
-]
+# the ocean: deep water, open sea, teal, sea glass and the sand of the sea
+# floor, each zone clearly its own; the lumbar, the one true structural
+# knot, is the single warm accent -- coral, the reef, life
+ZONE_COLORS = [tuple(round(c / 255, 4) for c in rgb) for rgb in [
+    (14, 40, 80),     # fore-foot fork — deep water
+    (30, 110, 190),   # front leg — open sea
+    (0, 150, 145),    # seat — teal
+    (240, 115, 85),   # lumbar — coral
+    (110, 200, 180),  # backrest — sea glass
+    (222, 192, 132),  # tail-foot fork — sand of the sea floor
+]]
 
 
 def zone_of(s):
@@ -1176,7 +1206,8 @@ def main():
     # stale hand-copied number). If tuning the tables has pushed the weakest
     # joint below the intended safety factor, stop here — before anything is
     # exported — instead of silently handing back an unsafe STL.
-    import manta_strength_check as _sc
+    import importlib
+    _sc = importlib.import_module(PRESET["strength"])
     _margin, _where = _sc.worst_margin()
     print(f"\nstrength check — weakest: {_where}  ({_margin:.2f}x)   "
           f"[full report: python manta_strength_check.py]")

@@ -1,0 +1,13 @@
+# MANTA: the exact versions it was built and checked with (Python 3.13.7)
+# pip install -r requirements.txt   (PrusaSlicer 2.x is needed only for manta_slicer_check.py)
+cadquery==2.8.0
+cadquery-ocp==7.9.3.1.1
+numpy==2.4.4
+scipy==1.17.1
+shapely==2.1.2
+trimesh==5.0.0
+matplotlib==3.11.1
+vtk==9.6.2
+pypdfium2==5.13.0
+reportlab==5.0.1
+pillow==12.3.0

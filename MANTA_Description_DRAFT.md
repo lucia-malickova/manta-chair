@@ -9,8 +9,8 @@ story of life: a wave that rose from the sea floor and stayed, one continuous
 ribbon printed at home in 43 parts and glued without screws. Its
 forked feet are the fins of a manta, the ray that tells us how healthy the
 sea is. From the side, legs, seat and back draw an M, for Manta and for
-*Mare*. Its colour is the depth of the water, deep blue at the feet to foam
-at the crest, and every seam is left white, like spray.
+*Mare*. Its colour is the sea itself, lightening into foam at the crest,
+and every seam is left white, like spray.
 
 Yet we fill that ocean with plastic. Microplastics are now found even in
 human blood, and more and more of us, children too, print plastic at home.

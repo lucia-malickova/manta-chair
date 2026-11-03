@@ -137,7 +137,9 @@ def img(name, box, contain=True):
                       (im.width-bw)//2+bw, (im.height-bh)//2+bh))
         board.paste(im, (x0, y0))
     else:
-        board.paste(im, (x0 + (bw-im.width)//2, y0 + (bh-im.height)//2))
+        _rm = Image.new("L", im.size, 0)
+        ImageDraw.Draw(_rm).rounded_rectangle((0, 0, im.width - 1, im.height - 1), radius=48, fill=255)
+        board.paste(im, (x0 + (bw-im.width)//2, y0 + (bh-im.height)//2), _rm)
 
 def section(xy, title, size=34, col=None, bar=None):
     x, y = xy
@@ -174,7 +176,7 @@ def vband(x, y0, y1, w=6):
 # three pillars: why this chair, this form, this colour
 pillars = [
     ("OXYGEN", "The ocean makes at least half of the oxygen we breathe. MANTA is a wave of it, "
-               "a story of a living planet: deep blue at the feet, foam at the crest."),
+               "a story of a living planet, its colour lightening into foam at the crest."),
     ("WASTE", "We fill that ocean with plastic; microplastics are found even in human blood. "
               "MANTA is printed with sense: under 1 % support waste, ideally in recycled PETG."),
     ("LIFE", "The manta ray tells how healthy the sea is. Its fins hold the chair, from the side "
@@ -217,7 +219,7 @@ def callout(pt, at, key, txt, maxw=600, right=False):
 
 
 callout((1150, 610), (640, 640), "THE CREST", "a wave breaking forward, falling back through itself", 560)
-callout((960, 1050), (640, 1180), "COLOUR", "the depth of the sea: deep blue at the feet, foam at the crest", 560)
+callout((960, 1050), (640, 1180), "COLOUR", "the colour of the sea, lightening into foam at the crest", 560)
 callout((1440, 1370), (1980, 1080), "THE CURRENT", "flutes, bold at the floor, calm at the crest, smooth where you sit", 520)
 callout((540, 1975), (640, 2310), "FINS", "every foot forks into two splayed prongs: a manta on the seabed", 900)
 # the REAL chair: printed at home, glued, photographed -- next to the render
@@ -230,7 +232,9 @@ def photo(path, box, focus=(0.5, 0.5)):
     s = max(bw / im.width, bh / im.height)
     im = im.resize((max(bw, int(im.width * s)), max(bh, int(im.height * s))))
     ox, oy = int((im.width - bw) * focus[0]), int((im.height - bh) * focus[1])
-    board.paste(im.crop((ox, oy, ox + bw, oy + bh)), (x0, y0))
+    _rm = Image.new("L", (bw, bh), 0)
+    ImageDraw.Draw(_rm).rounded_rectangle((0, 0, bw - 1, bh - 1), radius=32, fill=255)
+    board.paste(im.crop((ox, oy, ox + bw, oy + bh)), (x0, y0), _rm)
 
 photo("photos/prototype_4.jpg", (3010, 486, 3860, 1610))                    # side
 photo("photos/prototype_5.jpg", (3870, 486, 4720, 1610))                    # study model in the palm
@@ -275,25 +279,51 @@ stats = [
     ("2.1×", "even its weakest glued joint holds 2.1 times the checked load"),
     ("0.56 / 0.77", "tipping, sideways / backwards: above 0.5 means it does not tip over"),
 ]
-sy = 660
-for big, label in stats:
-    dr.text((4790, sy), big, font=F(108, True), fill=TEAL_DK)
-    wrap((4790, sy + 136), label, F(31), SUB, maxw=1330, sp=7)
-    sy += 400
-
-# dimensions strip — fills the rest of this column, still well clear of the
-# key grid (which starts further right at x~6120)
-dr.line((4790, sy - 30, 4790 + 1330, sy - 30), fill=HAIR, width=3)
-dr.text((4790, sy), "429 × 364", font=F(46, True), fill=TEAL_DK)
-dr.text((4790, sy + 58), "seat width × depth, mm", font=F(26), fill=SUB)
-dr.text((4790 + 420, sy), "428", font=F(46, True), fill=TEAL_DK)
-dr.text((4790 + 420, sy + 58), "seat height, mm", font=F(26), fill=SUB)
-dr.text((4790 + 780, sy), "5°", font=F(46, True), fill=TEAL_DK)
-dr.text((4790 + 780, sy + 58), "rearward tilt", font=F(26), fill=SUB)
-dr.text((4790, sy + 140), "812 × 698 × 998", font=F(40, True), fill=TEAL_DK)
-dr.text((4790, sy + 190), "depth × width × height, mm", font=F(26), fill=SUB)
-wrap((4790, sy + 250), "Every dimension checked against seating-ergonomics reference "
+for (big, label), (x, w) in zip(stats, [(4790, 370), (5200, 400), (5640, 480)]):
+    dr.text((x, 650), big, font=F(84, True), fill=TEAL_DK)
+    wrap((x, 760), label, F(28), SUB, maxw=w, sp=6)
+# dimensions in one line, then the ergonomics note
+dr.line((4790, 930, 4790 + 1330, 930), fill=HAIR, width=3)
+dr.text((4790, 962), "seat 429 × 364  ·  height 428  ·  tilt 5°  ·  overall 812 × 698 × 998 mm",
+        font=F(32, True), fill=TEAL_DK)
+wrap((4790, 1020), "Every dimension checked against seating-ergonomics reference "
      "ranges by script: 8 of 8 pass.", F(27), SUB, maxw=1330, sp=6)
+
+# how the form was found: three generations of the ribbon, each rebuilt and
+# re-checked by the code, to MANTA
+section((4790, 1150), "HOW THE FORM WAS FOUND", size=32)
+dr.text((4790 + 26, 1196), "three generations of the ribbon, each rebuilt and re-checked by the code",
+        font=F(26), fill=SUB)
+
+
+def cutout(path, box):
+    """an image on white, keyed onto the board (white -> transparent)"""
+    im = Image.open(path).convert("RGB").crop(box)
+    im.putalpha(im.convert("L").point(lambda v: 255 if v < 200 else max(0, (250 - v) * 5)))
+    return im
+
+
+def place(im, x, y, w, h):
+    im = im.copy()
+    im.thumbnail((w, h))
+    board.paste(im, (x + (w - im.width) // 2, y + (h - im.height)), im)
+
+
+gens = [(("_stuha_v1.png", (980, 300, 1190, 725)), "v1"), (("_stuha_v2.png", (740, 350, 1000, 700)), "v2"),
+        (("_stuha_v3.png", (690, 360, 1030, 730)), "v3")]
+hx = [4790 + k * 345 for k in range(4)]
+FY0, FY1 = 1280, 1720
+for k, ((p, box), lab) in enumerate(gens):
+    place(cutout(p, box), hx[k], FY0, 280, FY1 - FY0)
+    dr.text((hx[k] + 140, FY1 + 16), lab, font=F(30, True), fill=TEAL_DK, anchor="mt")
+    ax_ = hx[k] + 300
+    dr.polygon([(ax_, (FY0 + FY1) // 2 - 16), (ax_ + 28, (FY0 + FY1) // 2), (ax_, (FY0 + FY1) // 2 + 16)], fill=TEAL)
+_fin = Image.open(f"{D}/b_hero.png").convert("RGB").crop((450, 500, 2000, 2250))
+_fin.thumbnail((300, FY1 - FY0))
+_fm = Image.new("L", _fin.size, 0)
+ImageDraw.Draw(_fm).rounded_rectangle((0, 0, _fin.width - 1, _fin.height - 1), radius=26, fill=255)
+board.paste(_fin, (hx[3] + (300 - _fin.width) // 2, FY1 - _fin.height), _fm)
+dr.text((hx[3] + 150, FY1 + 16), "MANTA", font=F(30, True), fill=TEAL_DK, anchor="mt")
 
 # biomimicry / concept callouts (top right) — kept clear of the key grid,
 # which starts at y~1700 in this column
@@ -310,10 +340,10 @@ bio = [
 ]
 y = 562
 for j, (k, v) in enumerate(bio):
-    dr.rectangle((cx - 22, y + 4, cx - 14, y + 128), fill=depth(0.1 + 0.15 * j))
-    dr.text((cx, y), k, font=F(29, True), fill=INK)
-    wrap((cx, y+38), v, F(25), SUB, maxw=780, sp=5)
-    y += 168
+    dr.rectangle((cx - 22, y + 4, cx - 14, y + 138), fill=depth(0.1 + 0.15 * j))
+    dr.text((cx, y), k, font=F(32, True), fill=INK)
+    wrap((cx, y+42), v, F(27), SUB, maxw=790, sp=6)
+    y += 182
 
 hband(M, W - M, 2540, 8)
 # what we leave in the sea floats on its surface
@@ -387,8 +417,6 @@ for _ in range(520):
     _pd.ellipse((px_ - r_, py_ - r_, px_ + r_, py_ + r_), fill=c_ + (int(230 - (py_ - 2548)),))
 board.paste(_pov.convert("RGB"), (0, 0), _pov)
 dr = ImageDraw.Draw(board)
-wrap((3230, 2578), "About 11 million tonnes of plastic reach the ocean every year. It floats here, at the "
-     "surface, and breaks into microplastics.", F(28, True), (238, 150, 120), maxw=1830, sp=6)
 
 # ============ ASSEMBLY GUIDE ============  (template's 49-key grid: x~118..708 y~2008..2570)
 section((820, 2585), "ASSEMBLY GUIDE", col=DEEP_HEAD, bar=FOAM)
@@ -539,9 +567,9 @@ wrap((wx0 + 190, wy0 + 8), "Plastic, printed with sense: supports are 0.7 % of t
 by = wy0 + 120
 dr.rounded_rectangle((wx0, by, wx1, by + 56), radius=12, fill=(36, 132, 146))
 _wx = wx1 - max(8, int((wx1 - wx0) * 0.007))
-dr.rounded_rectangle((_wx, by, wx1, by + 56), radius=6, fill=(238, 120, 90))
+dr.rounded_rectangle((_wx, by, wx1, by + 56), radius=6, fill=(236, 92, 124))
 dr.text((wx0 + 22, by + 28), "the chair  99.3 %", font=F(28, True), fill=(255, 255, 255), anchor="lm")
-dr.text((_wx - 14, by + 28), "supports 0.7 %", font=F(28, True), fill=(255, 220, 205), anchor="rm")
+dr.text((_wx - 14, by + 28), "supports 0.7 %", font=F(28, True), fill=(255, 205, 218), anchor="rm")
 
 # ============ 3D PRINTING (right) ============
 section((5250, 2585), "3D PRINTING: THE ENTRY FILES (FOR 120 KG)", col=DEEP_HEAD, bar=FOAM)

@@ -44,8 +44,10 @@ commercial resale.
 ## Requirements (Python packages)
 
 ```
-pip install cadquery numpy scipy shapely trimesh matplotlib vtk pypdfium2 reportlab pillow
+pip install -r requirements.txt
 ```
+
+`requirements.txt` pins the exact versions MANTA was built and checked with.
 
 The first 3 are enough for the geometry itself. The rest are for the
 renders / board / poster / PDF.
@@ -147,6 +149,33 @@ got support inside them at a 45° threshold.)
 
 ---
 
+## Who is it for? One algorithm, any chair
+
+`manta_ribbon.py` makes every MANTA. A **preset** says who the chair is for
+(`PRESETS` in `manta_ribbon.py`), and the wall thickness, the print
+settings and every check follow from it:
+
+| | sitter | walls | infill | weakest glued check | filament |
+|---|---|---|---|---|---|
+| `python manta_ribbon.py` (the entry) | 120 kg | 100 % | 35 % | 2.1x | 16.4 kg |
+| `python manta_ribbon_personal.py` (built at home) | 70 kg | 75 % | 15 % | 1.6x | 8.9 kg |
+
+`manta_ribbon_personal.py` is not a copy: it runs `manta_ribbon.py` itself
+with the `light` preset (as `manta_strength_check_personal.py` runs
+`manta_strength_check.py`). For your own chair, set who it is for and how
+thick it should be:
+
+```
+MANTA_KG=90 MANTA_TH_SCALE=0.9 MANTA_INFILL=0.25 python manta_strength_check.py   # check it first
+MANTA_KG=90 MANTA_TH_SCALE=0.9 MANTA_INFILL=0.25 python manta_ribbon.py           # then build it
+```
+
+The generator rebuilds every cut, peg and joint for that chair and refuses
+to export it if a check fails (strength, the measured glue saddle, joint
+geometry). The quick strength check alone is first-order and assumes
+full-size pegs, while the generator shrinks pegs in thin sections: so for a
+chair much thinner than the light preset, trust the full generator run.
+
 ## How to tune it
 
 Everything is set in the `PARAMETERS` block at the top of `manta_ribbon.py`:
@@ -174,7 +203,7 @@ error instead of quietly writing an unsafe STL. Run
 
 **A ready-made lighter variant — [`MANTA_LIGHT/`](MANTA_LIGHT).** Not
 everyone needs a chair rated for a 120 kg dynamic sitter. `manta_ribbon_personal.py`
-is the exact same generator with `TH_S` thinned to 75%, printed with 15%
+runs the same generator with the `light` preset: `TH_S` thinned to 75%, printed with 15%
 gyroid and 4 perimeters; `manta_strength_check_personal.py` re-verifies it
 for a **70 kg** sitter (x 1.8 dynamic x 2.0 safety): weakest glued check
 **1.6x**, glued full-section joint **26x**. The PETG-only backup (peg + pin,
@@ -291,6 +320,13 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `_board_base.png` — the rasterised official board template (without instructions)
 - `3D_Template.stl` — the official 3D print file template (unmodified, as provided)
 - `MANTA_RIBBON/` — the 43 individual part STLs, clean and ready to print (no template geometry) — see "Printing the parts" above
+
+## How it was made
+
+The design, the story and every decision are the designer's. The code was
+written together with an AI coding assistant (Claude, by Anthropic): the
+designer set the form, the rules and the checks, the assistant helped write
+and test the scripts, and every number on the board comes from running them.
 
 ## License
 

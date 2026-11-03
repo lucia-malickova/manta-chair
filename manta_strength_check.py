@@ -12,11 +12,14 @@ lumbar, held by the tail-brace down to the floor. Cuts are always AWAY from
 the lumbar and the knee (the ribbon stays whole there). The GLUED JOINTS are
 the critical checks.
 """
+import importlib
 import math
-import manta_ribbon as st
+# which chair: manta_strength_check_personal.py runs this same file for the
+# light chair (GEN is set there); every input below comes from its preset
+st = importlib.import_module(globals().get("GEN", "manta_ribbon"))
 
 # ══════════ (A) REAL-WORLD INPUTS ══════════
-M_KG = 120.0     # heaviest expected user
+M_KG = st.PRESET["kg"]   # heaviest expected user (120 kg entry, 70 kg light chair)
 G    = 9.81
 DYN  = 1.8       # 1.0 slow sit / 1.8 normal sit-down / 2.5 a drop/flop
 SF   = 2.0       # safety factor
@@ -30,7 +33,7 @@ TAU_ULT   = 27.0
 E_MPA     = 2000.0
 EPOXY_SH  = 12.0   # epoxy shear at the joint
 EPOXY_TEN = 15.0   # epoxy tension (butt joint, conservative)
-INFILL    = 0.35   # 35% gyroid, as printed (a slicer setting, not derived from the geometry)
+INFILL    = st.PRESET["infill"]   # gyroid, as printed (a slicer setting, not derived from the geometry)
 
 # ══════════ (B) GEOMETRY — read LIVE from manta_ribbon.py's actual spine/
 # width/thickness tables, not copied by hand. This means changing W_S, TH_S
@@ -193,7 +196,7 @@ chk("Tail-brace: compression", Ft / A(TAIL_W, TAIL_TH), sa, "MPa")
 #     reaction plus 60 % of the sitter's weight. Only half of the measured
 #     saddle is counted (fluted surfaces, 0.25 mm glue gap); the generator
 #     refuses to export if the real saddle is smaller than SADDLE_A.
-SADDLE_A = 5400.0      # mm2, rear saddle (generator measures it: CROSSING.json)
+SADDLE_A = st.PRESET["saddle_a"]   # mm2, rear saddle (generator measures it: CROSSING.json)
 F_saddle = (Hb + W * 0.60) / math.sin(math.radians(38))
 chk("Crossing: saddle epoxy shear", F_saddle / (0.5 * SADDLE_A), esh, "MPa")
 
@@ -239,16 +242,17 @@ def worst_margin():
                key=lambda t: t[0])
 
 
-if __name__ == "__main__":
-    # ── report ──
+def report():
     print("\nMANTA — one continuous ribbon: strength check")
     print(f"person {M_KG:.0f} kg - dyn {DYN} - SF {SF} - infill {INFILL:.0%}")
     print(f"W vertical {W:.0f} N - Hb into backrest {Hb:.0f} N - Hs sideways {Hs:.0f} N\n")
     print(f"{'LOCATION':38s}{'VALUE':>9s}{'ALLOW.':>9s}{'MARGIN':>7s}  STATUS")
-    worst = (9e9, "")
+    worst, worst_any = (9e9, ""), (9e9, "")
     for n, a, al, m, ok, u, note, gate in rows:
         if gate and m < worst[0]:
             worst = (m, n)
+        if m < worst_any[0]:
+            worst_any = (m, n)
         tag = "" if gate else "  [backup only, not gated]"
         print(f"{n:38s}{a:8.1f}{u[:3]:>3s}{al:8.1f}{u[:3]:>3s}{m:6.1f}x  {'OK' if ok else 'X FAIL'}{tag}")
         if note:
@@ -256,6 +260,9 @@ if __name__ == "__main__":
 
     print(f"\nWEAKEST LINK (gates auto-export): {worst[1]}  (margin {worst[0]:.1f}x)")
     print(f"MAX safe weight (SF={SF}, dyn={DYN}): ~{M_KG * worst[0]:.0f} kg")
+    if worst_any[0] < 1.0 and worst_any[1] != worst[1]:
+        print(f"NOTE: '{worst_any[1]}' is below 1.0x too (margin {worst_any[0]:.1f}x) but marked "
+              f"backup-only, so it does not block export: see the note on that row.")
 
     print("\nTipping stability (ratio > 0.5 = good, 0.3-0.5 = OK for normal use):")
     print(f"  rearward (sitting upright): {TIP_REAR_UP:.2f}")
@@ -268,3 +275,7 @@ if __name__ == "__main__":
         if m < 1.5:
             print(f"  {n}  (margin {m:.1f}x){'  [backup only]' if not gate else ''}")
     print("\n(first-order, not FEA. Physical joint test: manta_joint_test.py.)\n")
+
+
+if __name__ == "__main__":
+    report()
