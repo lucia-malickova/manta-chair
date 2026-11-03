@@ -151,6 +151,7 @@ def wrap(xy, s, font, fill=INK, maxw=900, sp=9, anchor="la"):
         else: lines.append(cur); cur = w
     lines.append(cur)
     dr.multiline_text(xy, "\n".join(lines), font=font, fill=fill, spacing=sp, anchor=anchor)
+    return dr.multiline_textbbox(xy, "\n".join(lines), font=font, spacing=sp, anchor=anchor)[3]
 
 M = 150
 # ============ HEADER ============
@@ -235,14 +236,25 @@ photo("photos/prototype_4.jpg", (3010, 486, 3860, 1610))                    # si
 photo("photos/prototype_5.jpg", (3870, 486, 4720, 1610))                    # study model in the palm
 photo("photos/prototype_3.jpg", (3010, 1620, 3860, 2440), focus=(0.35, 0.55))  # study model + chair
 photo("photos/prototype_7.jpg", (3870, 1620, 4720, 2440), focus=(0.5, 0.70))   # study model on the seat (whole chair)
+# the M drawn by legs, seat and backrest: front leg up, seat, backrest up to the crest, rear leg down
+_M = [(3158, 1326), (3160, 1016), (3270, 1030), (3384, 1022), (3415, 880), (3392, 704), (3440, 905), (3650, 1290)]
+_ov = Image.new("RGBA", board.size, (0, 0, 0, 0))
+_od = ImageDraw.Draw(_ov)
+_od.line(_M, fill=(255, 255, 255, 90), width=34, joint="curve")
+_od.line(_M, fill=(255, 255, 255, 235), width=9, joint="curve")
+for _p in (_M[0], _M[1], _M[3], _M[5], _M[-1]):
+    _od.ellipse((_p[0] - 15, _p[1] - 15, _p[0] + 15, _p[1] + 15), fill=(255, 255, 255, 245))
+board.paste(_ov.convert("RGB"), (0, 0), _ov)
+dr = ImageDraw.Draw(board)
+dr.text((3745, 830), "M", font=F(150, True), fill=(255, 255, 255), anchor="mm", stroke_width=3, stroke_fill=DEEP)
+dr.text((3745, 922), "Manta, Mare", font=F(32, True), fill=(255, 255, 255), anchor="mm", stroke_width=3, stroke_fill=DEEP)
 dr.rounded_rectangle((3030, 1530, 3600, 1592), radius=12, fill=DEEP)
 dr.text((3052, 1561), "the M, seen from the side", font=F(30, True), fill=FOAM, anchor="lm")
 dr.rounded_rectangle((3030, 506, 3720, 570), radius=12, fill=TEAL)
 dr.text((3052, 538), "BUILT  -  full-size prototype", font=F(34, True), fill=(255, 255, 255), anchor="lm")
-wrap((3010, 2448), "Printed at home (light variant, 75 % walls): ~9 kg, ~160 h, ~77 EUR with glue. Every part means "
-     "something: forked feet = manta fins; the side profile draws an M (Manta, Mare); the crest = a breaking wave; "
-     "colour = sea depth to foam; white seams = sea foam (epoxy + silica). Black: the first study model.",
-     F(23), SUB, maxw=1710, sp=3)
+wrap((3010, 2450), "Printed at home (light variant, 75 % walls): ~9 kg, ~160 h, ~77 EUR with glue. "
+     "White seams = sea foam (epoxy + fumed silica). Black: the first study model.",
+     F(27), SUB, maxw=1710, sp=5)
 
 def bubbles(box, n, seed, rmax=34):
     import random
@@ -274,28 +286,28 @@ stats = [
 sy = 660
 for big, label in stats:
     dr.text((4790, sy), big, font=F(108, True), fill=TEAL_DK)
-    wrap((4790, sy + 136), label, F(28), SUB, maxw=1330, sp=7)
+    wrap((4790, sy + 136), label, F(31), SUB, maxw=1330, sp=7)
     sy += 400
 
 # dimensions strip — fills the rest of this column, still well clear of the
 # key grid (which starts further right at x~6120)
 dr.line((4790, sy - 30, 4790 + 1330, sy - 30), fill=HAIR, width=3)
 dr.text((4790, sy), "429 x 364", font=F(46, True), fill=TEAL_DK)
-dr.text((4790, sy + 58), "seat W x D, mm", font=F(20), fill=SUB)
+dr.text((4790, sy + 58), "seat W x D, mm", font=F(26), fill=SUB)
 dr.text((4790 + 420, sy), "428", font=F(46, True), fill=TEAL_DK)
-dr.text((4790 + 420, sy + 58), "seat height, mm", font=F(20), fill=SUB)
+dr.text((4790 + 420, sy + 58), "seat height, mm", font=F(26), fill=SUB)
 dr.text((4790 + 780, sy), "5 deg", font=F(46, True), fill=TEAL_DK)
-dr.text((4790 + 780, sy + 58), "rearward tilt", font=F(20), fill=SUB)
+dr.text((4790 + 780, sy + 58), "rearward tilt", font=F(26), fill=SUB)
 dr.text((4790, sy + 140), "812 x 698 x 998", font=F(40, True), fill=TEAL_DK)
-dr.text((4790, sy + 190), "overall D x W x H, mm", font=F(20), fill=SUB)
+dr.text((4790, sy + 190), "overall D x W x H, mm", font=F(26), fill=SUB)
 wrap((4790, sy + 250), "Every dimension checked against seating-ergonomics reference "
-     "ranges by script — 8/8 pass.", F(23), SUB, maxw=1330, sp=6)
+     "ranges by script — 8/8 pass.", F(27), SUB, maxw=1330, sp=6)
 
 # biomimicry / concept callouts (top right) — kept clear of the key grid,
 # which starts at y~1700 in this column
 cx = 6180
 section((cx, 470), "BIOMIMICRY", size=32)
-dr.text((cx + 26, 512), "structural, not applied", font=F(23), fill=SUB)
+dr.text((cx + 26, 512), "structural, not applied", font=F(26), fill=SUB)
 bio = [
  ("Wolff's law", "thickness follows the bending moment: 84 mm at the lumbar knot, 32 mm blade at the crown"),
  ("Murray's law", "the lumbar is the one 3-way node; section ~ cube-root-sum, every transition filleted"),
@@ -307,8 +319,8 @@ bio = [
 y = 562
 for j, (k, v) in enumerate(bio):
     dr.rectangle((cx - 22, y + 4, cx - 14, y + 128), fill=depth(0.1 + 0.15 * j))
-    dr.text((cx, y), k, font=F(27, True), fill=INK)
-    wrap((cx, y+36), v, F(22), SUB, maxw=770, sp=5)
+    dr.text((cx, y), k, font=F(29, True), fill=INK)
+    wrap((cx, y+38), v, F(25), SUB, maxw=780, sp=5)
     y += 168
 
 hband(M, W - M, 2540, 8)
@@ -348,6 +360,21 @@ steps = [
  ("5", "The crossing, cure", "Where the ribbon returns through the backrest it is trimmed to the backrest's shape: epoxy the loop's end (27, 28 + small piece 43, split from 29) onto its front and the tail brace (29, 30) onto its back (saddle, 56 cm2). Build seat, backrest and fork-feet separately, cure 24 h, then join at the lumbar and knees."),
  ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~250 kg."),
 ]
+# which real parts each step shows (board numbers = engraved numbers)
+STEP_PARTS = [(1, 43), (23, 24), (11, 13), (42,), (29, 43), ()]
+
+
+def thumb_card(x, y, pn, sz=168):
+    dr.rounded_rectangle((x, y, x + sz, y + sz), radius=18, fill=(250, 252, 252))
+    p = f"{THUMBS}/{pn:02d}.png"
+    if os.path.exists(p):
+        t = Image.open(p).convert("RGB")
+        t.thumbnail((sz - 26, sz - 26))
+        board.paste(t, (x + (sz - t.width) // 2, y + (sz - t.height) // 2))
+    dr.ellipse((x - 14, y - 14, x + 40, y + 40), fill=depth(0.75), outline=DEEP, width=3)
+    dr.text((x + 13, y + 13), str(pn), font=F(24, True), fill=DEEP, anchor="mm")
+
+
 sx = 3230
 for i, (n, t, b) in enumerate(steps):
     yy = 2700 + i*300
@@ -355,7 +382,14 @@ for i, (n, t, b) in enumerate(steps):
     dr.ellipse((sx, yy, sx+92, yy+92), fill=_c)
     dr.text((sx+46, yy+46), n, font=F(46, True), fill=(255, 255, 255) if i < 4 else DEEP, anchor="mm")
     dr.text((sx+128, yy+2), t, font=F(46, True), fill=DEEP_TXT)
-    wrap((sx+128, yy+66), b, F(33), DEEP_SUB, maxw=1680, sp=9)
+    wrap((sx+128, yy+66), b, F(33), DEEP_SUB, maxw=1270, sp=9)
+    parts = STEP_PARTS[i]
+    tx = 5060 - len(parts) * 168 - (len(parts) - 1) * 34
+    for j, pn in enumerate(parts):
+        thumb_card(tx, yy - 6, pn)
+        if j < len(parts) - 1:
+            dr.text((tx + 168 + 17, yy + 78), "+", font=F(44, True), fill=DEEP_HEAD, anchor="mm")
+        tx += 168 + 34
 
 vband(5168, 2560, 4770, 6)
 
@@ -400,41 +434,86 @@ dr.text((_wx - 14, by + 28), "supports 0.7 %", font=F(28, True), fill=(255, 220,
 
 # ============ 3D PRINTING (right) ============
 section((5250, 2585), "3D PRINTING", col=DEEP_HEAD, bar=FOAM)
-rows = [
- ("PARTS", "43: 42 pieces of ribbon (41 segments, one in two pieces) + the pin (print x4)  -  limit 49"),
- ("PART SIZE", "each <= 212 x 220 x 250 mm"),
- ("SUPPORTS", "almost none: under 1 % of the filament (121 g, PrusaSlicer), from the build plate only; every hole is shaped for how its part lies, so none grows inside"),
- ("MATERIAL", "PETG"),
- ("LAYER / NOZZLE", "0.20 mm  /  0.4 mm"),
- ("WALLS", "5 perimeters"),
- ("INFILL", "35 % gyroid  (kept low — the ribbon's own bulk carries the load)"),
- ("ADHESIVE", "two-part epoxy thickened with fumed silica: ~20 EUR for the whole chair"),
- ("PIN", "dia 11 x 133 mm rod, 100 % infill, printed lying on its flat, x4 (2 lumbar joints)"),
- ("EST. WEIGHT", "~16.5 kg  -  ~110 EUR: ~90 filament (PrusaSlicer) + ~20 epoxy"),
- ("BATCH TIME", "~460 h on one printer (PrusaSlicer estimate)"),
+cols = [
+ [("PARTS", "43: 42 pieces of ribbon (41 segments, one in two pieces) + the pin (print x4); limit 49"),
+  ("PART SIZE", "each fits 212 x 220 x 250 mm"),
+  ("SUPPORTS", "under 1 % of the filament (121 g, PrusaSlicer), from the plate only; every hole is "
+               "shaped for how its part lies, so none grows inside"),
+  ("SETTINGS", "PETG, 0.20 mm layers, 0.4 mm nozzle, 5 perimeters, 35 % gyroid")],
+ [("ADHESIVE", "two-part epoxy thickened with fumed silica, ~20 EUR for the chair"),
+  ("PIN", "dia 11 x 133 mm rod, 100 % infill, lying flat, x4"),
+  ("WEIGHT, COST", "~16.5 kg, ~110 EUR (~90 filament + ~20 epoxy)"),
+  ("BATCH TIME", "~460 h on one printer (PrusaSlicer)")],
 ]
-y = 2680
-for k, v in rows:
-    dr.text((5250, y), k, font=F(26, True), fill=DEEP_SUB)
-    wrap((5250, y+38), v, F(31), DEEP_TXT, maxw=1560, sp=5)
-    y += 176
+for ci, rows in enumerate(cols):
+    x, y = 5250 + ci * 800, 2672
+    for k, v in rows:
+        dr.text((x, y), k, font=F(26, True), fill=DEEP_SUB)
+        y = wrap((x, y + 38), v, F(31), DEEP_TXT, maxw=740, sp=6) + 44
 
-# ---- OPEN DESIGN callout box — our strongest reproducibility argument, ----
-# ---- given its own visual weight instead of hiding in the row list ----
-box_x0, box_y0, box_x1 = 5250, 4640, 6810
-try:
-    dr.rounded_rectangle((box_x0, box_y0, box_x1, 4900), radius=18, fill=TEAL_TINT)
-except AttributeError:
-    dr.rectangle((box_x0, box_y0, box_x1, 4900), fill=TEAL_TINT)
-section((box_x0 + 24, box_y0 + 22), "THE ALGORITHM", size=28)
-wrap((box_x0 + 24, box_y0 + 70), "MANTA is generated by an algorithm written for it. Choose who the chair "
-     "is for and how thick it is: it rebuilds every cut, peg and joint, re-checks load and stability, and "
-     "refuses to export a chair that would fail. So anyone can print a lighter or stronger MANTA and only "
-     "the plastic they need: the 70 kg version in the repo (the one built here) uses about half the "
-     "filament. No two of its 42 ribbon pieces are alike; manta_verify.py re-runs every check.",
-     F(25), INK, maxw=1512, sp=6)
-dr.text((box_x0 + 24, 4840), "Full source, anonymised for review:", font=F(22), fill=SUB)
-dr.text((box_x0 + 24, 4868), "anonymous.4open.science/r/manta-chair-23D4", font=F(24, True), fill=TEAL_DK)
+# ============ THE ALGORITHM: print only the chair you need ============
+ax0, ay0, ax1, ay1 = 5250, 3330, 6810, 4660
+dr.rounded_rectangle((ax0, ay0, ax1, ay1), radius=24, fill=TEAL_TINT)
+section((ax0 + 36, ay0 + 34), "THE ALGORITHM: PRINT ONLY THE CHAIR YOU NEED", size=36)
+wrap((ax0 + 36, ay0 + 96), "MANTA is generated by code written for it. Tell it who the chair is for; it builds, "
+     "checks and exports only a chair that holds.", F(31), INK, maxw=ax1 - ax0 - 72, sp=6)
+# the pipeline: five stages, the checks loop back on failure
+stages = [
+    ("WHO IS IT FOR", "body weight, wall thickness"),
+    ("REBUILD", "every cut, peg, joint and pin"),
+    ("CHECK", "strength, tipping, virtual assembly, slicer supports"),
+    ("ORIENT", "each part on the bed, holes shaped for it"),
+    ("PRINT", "43 numbered parts"),
+]
+nw, gap, ny0, ny1 = 268, 30, ay0 + 240, ay0 + 560
+nx = ax0 + 36
+centres = []
+for k, (head, body) in enumerate(stages):
+    col = depth(0.05 + 0.2 * k)
+    dr.rounded_rectangle((nx, ny0, nx + nw, ny1), radius=20, fill=col)
+    tc = (255, 255, 255) if k < 3 else DEEP
+    dr.text((nx + nw // 2, ny0 + 30), str(k + 1), font=F(48, True), fill=tc, anchor="mt")
+    dr.text((nx + nw // 2, ny0 + 104), head, font=F(30, True), fill=tc, anchor="mt")
+    wrap((nx + nw // 2, ny0 + 160), body, F(27), tc, maxw=nw - 34, sp=7, anchor="ma")
+    centres.append(nx + nw // 2)
+    if k < len(stages) - 1:
+        ym = (ny0 + ny1) // 2
+        dr.polygon([(nx + nw + 6, ym - 13), (nx + nw + gap - 4, ym), (nx + nw + 6, ym + 13)], fill=TEAL_DK)
+    nx += nw + gap
+# fail -> back to rebuild
+fy = ny1 + 46
+dr.line((centres[2], ny1 + 4, centres[2], fy), fill=(214, 96, 70), width=6)
+dr.line((centres[1], fy, centres[2], fy), fill=(214, 96, 70), width=6)
+dr.line((centres[1], fy, centres[1], ny1 + 18), fill=(214, 96, 70), width=6)
+dr.polygon([(centres[1] - 14, ny1 + 22), (centres[1] + 14, ny1 + 22), (centres[1], ny1 + 4)], fill=(214, 96, 70))
+dr.text((centres[2] + 22, fy), "fails? it will not export it, it rebuilds", font=F(29, True),
+        fill=(190, 76, 52), anchor="lm")
+
+# the same code, two chairs: who it is for decides how much plastic it takes
+cy0 = fy + 90
+dr.text((ax0 + 36, cy0), "Same code, two chairs: the filament it takes", font=F(34, True), fill=TEAL_DK)
+bx0, bx1 = ax0 + 470, ax1 - 200
+comp = [("for 120 kg", "this entry's files", 16.4, depth(0.15)),
+        ("for 70 kg", "the one built here", 8.9, depth(0.62))]
+yb = cy0 + 84
+for lab, sub, kg, col in comp:
+    dr.text((ax0 + 36, yb - 6), lab, font=F(38, True), fill=INK)
+    dr.text((ax0 + 36, yb + 42), sub, font=F(27), fill=SUB)
+    w_ = int((bx1 - bx0) * kg / 16.4)
+    dr.rounded_rectangle((bx0, yb, bx0 + w_, yb + 80), radius=16, fill=col)
+    dr.text((bx0 + w_ + 20, yb + 40), ("~" if kg < 10 else "") + f"{kg:.1f} kg",
+            font=F(40, True), fill=TEAL_DK, anchor="lm")
+    yb += 140
+dr.text((bx0 + int((bx1 - bx0) * 8.9 / 16.4) + 210, yb - 100), "about half the plastic",
+        font=F(32, True), fill=(190, 76, 52), anchor="lm")
+yb += 10
+yb = wrap((ax0 + 36, yb), "Anyone can print a lighter or a stronger MANTA, and only the plastic it needs. "
+          "No two of its 42 ribbon pieces are alike; one command, manta_verify.py, re-runs every check.",
+          F(31), INK, maxw=ax1 - ax0 - 72, sp=7)
+dr.text((ax0 + 36, ay1 - 84), "Full source, anonymised for review:", font=F(25), fill=SUB)
+dr.text((ax0 + 36, ay1 - 52), "anonymous.4open.science/r/manta-chair-23D4", font=F(28, True), fill=TEAL_DK)
+manta(6300, 4820, 200, 0.18, (36, 92, 120))
+manta(5560, 4850, 110, -0.3, (32, 82, 110))
 
 board.convert("RGB").save(OUTF, "JPEG", quality=86)
 print(f"{OUTF}  {board.size}  {os.path.getsize(OUTF)/1e6:.2f} MB")
