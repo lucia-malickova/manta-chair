@@ -145,9 +145,9 @@ def photo(path, box, focus=(0.5, 0.5)):
     board.paste(im.crop((ox, oy, ox + bw, oy + bh)), (x0, y0))
 
 photo("photos/prototype_4.jpg", (3010, 486, 3860, 1610))                    # side
-photo("photos/prototype_7.jpg", (3870, 486, 4720, 1610))                    # study model on the seat
+photo("photos/prototype_5.jpg", (3870, 486, 4720, 1610))                    # study model in the palm
 photo("photos/prototype_3.jpg", (3010, 1620, 3860, 2440), focus=(0.35, 0.55))  # study model + chair
-photo("photos/prototype_5.jpg", (3870, 1620, 4720, 2440), focus=(0.5, 0.62))   # study model in the palm
+photo("photos/prototype_7.jpg", (3870, 1620, 4720, 2440), focus=(0.5, 0.70))   # study model on the seat (whole chair)
 dr.rounded_rectangle((3030, 506, 3720, 570), radius=12, fill=TEAL)
 dr.text((3052, 538), "BUILT  -  full-size prototype", font=F(34, True), fill=(255, 255, 255), anchor="lm")
 wrap((3010, 2452), "Printed at home (light variant: same form, 75 % wall): ~9 kg, ~160 h, ~77 EUR incl. glue. "
