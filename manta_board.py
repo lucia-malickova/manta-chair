@@ -150,9 +150,10 @@ photo("photos/prototype_3.jpg", (3010, 1620, 3860, 2440), focus=(0.35, 0.55))  #
 photo("photos/prototype_7.jpg", (3870, 1620, 4720, 2440), focus=(0.5, 0.70))   # study model on the seat (whole chair)
 dr.rounded_rectangle((3030, 506, 3720, 570), radius=12, fill=TEAL)
 dr.text((3052, 538), "BUILT  -  full-size prototype", font=F(34, True), fill=(255, 255, 255), anchor="lm")
-wrap((3010, 2452), "Printed at home (light variant: same form, 75 % wall): ~9 kg, ~160 h, ~77 EUR incl. glue. "
-     "Deep blue feet, foam-pale crest; the white seams are sea foam, epoxy with silica. Black: the first study model.",
-     F(24), SUB, maxw=1710, sp=4)
+wrap((3010, 2448), "Printed at home (light variant, 75 % walls): ~9 kg, ~160 h, ~77 EUR with glue. Every part means "
+     "something: forked feet = manta fins; the side profile draws an M (Manta, Mare); the crest = a breaking wave; "
+     "colour = sea depth to foam; white seams = sea foam (epoxy + silica). Black: the first study model.",
+     F(23), SUB, maxw=1710, sp=3)
 
 # ============ STRUCTURE & STABILITY (clear space, right of top view) ============
 section((4790, 470), "STRUCTURE & STABILITY", size=34)

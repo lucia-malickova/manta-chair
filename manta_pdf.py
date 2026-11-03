@@ -115,7 +115,7 @@ for raw in src.splitlines():
             story.append(Spacer(1, 4)); story.append(stat_strip()); story.append(Spacer(1, 5))
             pending_stats = False
         story.append(section_header(line[3:]))
-        if line[3:].strip().lower() == "stability and load":
+        if line[3:].strip().lower() in ("stability and load", "engineering that checks itself"):
             pending_stats = True
         last_block = None
         continue
