@@ -50,6 +50,7 @@ H2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=11.2, spaceBefore=
 BODY = ParagraphStyle("BODY", parent=styles["BodyText"], fontSize=9.15, leading=12.0,
                       alignment=TA_JUSTIFY, spaceAfter=3.0, textColor=INK)
 BUL = ParagraphStyle("BUL", parent=BODY, leftIndent=16, firstLineIndent=-10, spaceAfter=1.6)
+LIST = ParagraphStyle("LIST", parent=BODY, leftIndent=0, spaceAfter=2.4)
 STAT_BIG = ParagraphStyle("STAT_BIG", fontName="Helvetica-Bold", fontSize=17,
                           textColor=TEAL_DK, alignment=TA_CENTER, leading=19)
 STAT_LBL = ParagraphStyle("STAT_LBL", fontName="Helvetica", fontSize=6.6,
@@ -84,9 +85,8 @@ story, bullets, para_lines = [], [], []
 def flush_bullets():
     global bullets
     if bullets:
-        story.append(ListFlowable([ListItem(Paragraph(md_inline(b), BUL), leftIndent=8,
-                                            value="–", bulletColor="#0a828a")
-                                   for b in bullets], bulletType="bullet", start="–"))
+        for b in bullets:                 # clean lines, no bullet marks: the bold name leads
+            story.append(Paragraph(md_inline(b), LIST))
         bullets = []
 def flush_para():
     global para_lines
