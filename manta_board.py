@@ -273,26 +273,26 @@ dr.text((2808, 1516), "2", font=F(26, True), fill=(80, 160, 170), anchor="mm")
 section((4790, 470), "STRUCTURE & STABILITY", size=34)
 wrap((4790, 530), "The entry chair, made for 120 kg. Checked with that load ×1.8 for sitting down hard "
      "and ×2 for safety: every part passes.",
-     F(28), SUB, maxw=1320, sp=6)
+     F(29), SUB, maxw=1320, sp=10)
 stats = [
     ("~250 kg", "it can safely carry, standing still"),
     ("2.1×", "even its weakest glued joint holds 2.1 times the checked load"),
     ("0.56 / 0.77", "tipping, sideways / backwards: above 0.5 means it does not tip over"),
 ]
 for (big, label), (x, w) in zip(stats, [(4790, 370), (5200, 400), (5640, 480)]):
-    dr.text((x, 650), big, font=F(84, True), fill=TEAL_DK)
-    wrap((x, 760), label, F(28), SUB, maxw=w, sp=6)
+    dr.text((x, 680), big, font=F(84, True), fill=TEAL_DK)
+    wrap((x, 800), label, F(29), SUB, maxw=w, sp=11)
 # dimensions in one line, then the ergonomics note
-dr.line((4790, 930, 4790 + 1330, 930), fill=HAIR, width=3)
-dr.text((4790, 962), "seat 429 × 364  ·  height 428  ·  tilt 5°  ·  overall 812 × 698 × 998 mm",
+dr.line((4790, 1010, 4790 + 1330, 1010), fill=HAIR, width=3)
+dr.text((4790, 1045), "seat 429 × 364  ·  height 428  ·  tilt 5°  ·  overall 812 × 698 × 998 mm",
         font=F(32, True), fill=TEAL_DK)
-wrap((4790, 1020), "Every dimension checked against seating-ergonomics reference "
-     "ranges by script: 8 of 8 pass.", F(27), SUB, maxw=1330, sp=6)
+wrap((4790, 1108), "Every dimension checked against seating-ergonomics reference "
+     "ranges by script: 8 of 8 pass.", F(28), SUB, maxw=1330, sp=9)
 
 # how the form was found: three generations of the ribbon, each rebuilt and
 # re-checked by the code, to MANTA
-section((4790, 1150), "HOW THE FORM WAS FOUND", size=32)
-dr.text((4790 + 26, 1196), "three generations of the ribbon, each rebuilt and re-checked by the code",
+section((4790, 1250), "HOW THE FORM WAS FOUND", size=32)
+dr.text((4790 + 26, 1298), "three generations of the ribbon, each rebuilt and re-checked by the code",
         font=F(26), fill=SUB)
 
 
@@ -310,20 +310,16 @@ def place(im, x, y, w, h):
 
 
 gens = [(("_stuha_v1.png", (980, 300, 1190, 725)), "v1"), (("_stuha_v2.png", (740, 350, 1000, 700)), "v2"),
-        (("_stuha_v3.png", (690, 360, 1030, 730)), "v3")]
-hx = [4790 + k * 345 for k in range(4)]
-FY0, FY1 = 1280, 1720
+        (("_stuha_v3.png", (690, 360, 1030, 730)), "v3: MANTA")]
+hx = [4790 + k * 455 for k in range(3)]
+FY0, FY1 = 1400, 1900
 for k, ((p, box), lab) in enumerate(gens):
-    place(cutout(p, box), hx[k], FY0, 280, FY1 - FY0)
-    dr.text((hx[k] + 140, FY1 + 16), lab, font=F(30, True), fill=TEAL_DK, anchor="mt")
-    ax_ = hx[k] + 300
-    dr.polygon([(ax_, (FY0 + FY1) // 2 - 16), (ax_ + 28, (FY0 + FY1) // 2), (ax_, (FY0 + FY1) // 2 + 16)], fill=TEAL)
-_fin = Image.open(f"{D}/b_hero.png").convert("RGB").crop((450, 500, 2000, 2250))
-_fin.thumbnail((300, FY1 - FY0))
-_fm = Image.new("L", _fin.size, 0)
-ImageDraw.Draw(_fm).rounded_rectangle((0, 0, _fin.width - 1, _fin.height - 1), radius=26, fill=255)
-board.paste(_fin, (hx[3] + (300 - _fin.width) // 2, FY1 - _fin.height), _fm)
-dr.text((hx[3] + 150, FY1 + 16), "MANTA", font=F(30, True), fill=TEAL_DK, anchor="mt")
+    place(cutout(p, box), hx[k], FY0, 380, FY1 - FY0)
+    dr.text((hx[k] + 190, FY1 + 18), lab, font=F(30, True), fill=TEAL_DK, anchor="mt")
+    if k < len(gens) - 1:
+        ax_ = hx[k] + 405
+        dr.polygon([(ax_, (FY0 + FY1) // 2 - 16), (ax_ + 28, (FY0 + FY1) // 2), (ax_, (FY0 + FY1) // 2 + 16)],
+                   fill=TEAL)
 
 # biomimicry / concept callouts (top right) — kept clear of the key grid,
 # which starts at y~1700 in this column
@@ -340,10 +336,10 @@ bio = [
 ]
 y = 562
 for j, (k, v) in enumerate(bio):
-    dr.rectangle((cx - 22, y + 4, cx - 14, y + 138), fill=depth(0.1 + 0.15 * j))
+    dr.rectangle((cx - 22, y + 4, cx - 14, y + 146), fill=depth(0.1 + 0.15 * j))
     dr.text((cx, y), k, font=F(32, True), fill=INK)
-    wrap((cx, y+42), v, F(27), SUB, maxw=790, sp=6)
-    y += 182
+    wrap((cx, y+44), v, F(27), SUB, maxw=790, sp=10)
+    y += 190
 
 hband(M, W - M, 2540, 8)
 # what we leave in the sea floats on its surface
