@@ -187,7 +187,7 @@ pillars = [
                "a story of a living planet, its colour lightening into foam at the crest."),
     ("WASTE", "We fill that ocean with plastic; microplastics are found even in human blood. "
               "MANTA is printed with sense: under 1 % support waste, ideally in recycled PETG."),
-    ("LIFE", "The manta ray tells how healthy the sea is. Its fins hold the chair, from the side "
+    ("LIFE", "The manta ray tells how healthy the sea is. Its fins hold the chair; from the side "
              "the seat draws its M (Manta, Mare), and biomimicry puts material only where the load is."),
 ]
 px0, pw = 1560, 1740
@@ -293,7 +293,7 @@ for k, (big, label) in enumerate(stats):
 # dimensions, then the ergonomics note
 dr.line((4790, 1610, 4790 + 1330, 1610), fill=HAIR, width=3)
 dr.text((4790, 1648), "seat 429 × 364  ·  height 428  ·  tilt 5°", font=F(42, True), fill=TEAL_DK)
-dr.text((4790, 1712), "overall 812 × 698 × 998 mm", font=F(42, True), fill=TEAL_DK)
+dr.text((4790, 1712), "overall 797 × 685 × 979 mm", font=F(42, True), fill=TEAL_DK)
 wrap((4790, 1790), "Every dimension checked against seating-ergonomics reference "
      "ranges by script: 8 of 8 pass.", F(34), SUB, maxw=1330, sp=11)
 
@@ -335,7 +335,7 @@ cx = 6180
 section((cx, 470), "BIOMIMICRY", size=32)
 dr.text((cx + 26, 512), "structural, not applied", font=F(26), fill=SUB)
 bio = [
- ("Wolff's law", "thickness follows the bending: 84 mm at the lumbar knot, a 32 mm blade at the crown"),
+ ("Wolff's law", "thickness follows the bending: 84 mm at the lumbar knot, a 24 mm blade at the crown"),
  ("Murray's law", "the lumbar is the one 3-way node: three branches balanced like blood vessels"),
  ("Spiral fibre", "flutes follow the stress path and stiffen the ribbon; the section twists up to 20°"),
  ("Shell curvature", "a closed rounded section and a dished seat carry load like a shell"),

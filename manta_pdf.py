@@ -47,7 +47,7 @@ styles = getSampleStyleSheet()
 H1 = ParagraphStyle("H1", parent=styles["Title"], fontSize=20, spaceAfter=3, spaceBefore=0)
 H2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=12, spaceBefore=10, spaceAfter=3.5,
                     textColor=TEAL_DK)
-BODY = ParagraphStyle("BODY", parent=styles["BodyText"], fontSize=9.9, leading=13.6,
+BODY = ParagraphStyle("BODY", parent=styles["BodyText"], fontSize=10.5, leading=14.6,
                       alignment=TA_JUSTIFY, spaceAfter=3.0, textColor=INK)
 BUL = ParagraphStyle("BUL", parent=BODY, leftIndent=16, firstLineIndent=-10, spaceAfter=1.6)
 LIST = ParagraphStyle("LIST", parent=BODY, leftIndent=0, spaceAfter=2.4)

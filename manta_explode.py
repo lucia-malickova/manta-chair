@@ -51,14 +51,14 @@ def scene(actors, fname, size, elev, azim, parallel=True, labels=(), legend=None
         L.SetIntensity(inten); ren.AddLight(L)
     ren.ResetCamera()
     b = ren.ComputeVisiblePropBounds()
-    ctr = ((b[0]+b[1])/2, (b[2]+b[3])/2, (b[4]+b[5])/2)
+    ctr = ((b[0]+b[1])/2, (b[2]+b[3])/2, (b[4]+b[5])/2 - 0.05*(b[5]-b[4]))   # a little lower: room under the feet
     span = max(b[1]-b[0], b[3]-b[2], b[5]-b[4])
     cam = ren.GetActiveCamera()
     e, a = math.radians(elev), math.radians(azim)
     vd = np.array([math.cos(e)*math.cos(a), math.cos(e)*math.sin(a), math.sin(e)])
     cam.SetFocalPoint(*ctr); cam.SetPosition(*(np.array(ctr) + vd*span*3)); cam.SetViewUp(0, 0, 1)
     if parallel:
-        cam.ParallelProjectionOn(); cam.SetParallelScale(span*0.62)
+        cam.ParallelProjectionOn(); cam.SetParallelScale(span*0.66)
     cam.SetClippingRange(span*0.3, span*8)
     rw = vtk.vtkRenderWindow(); rw.SetOffScreenRendering(1); rw.AddRenderer(ren)
     rw.SetSize(*size); rw.SetMultiSamples(8); rw.Render()
