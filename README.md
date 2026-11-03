@@ -9,7 +9,27 @@ fluke — and for the ocean's role as the planet's largest source of oxygen,
 which the surface relief carries in its own graded texture, bold at the
 floor and calming toward the crown.
 
-No two of its 41 printed segments are identical, on purpose: nothing in
+## Built — a full-size prototype
+
+| | |
+|---|---|
+| ![side](photos/prototype_4.jpg) | ![with the first study model on the seat](photos/prototype_7.jpg) |
+| ![study model and chair](photos/prototype_3.jpg) | ![the first study model](photos/prototype_5.jpg) |
+
+Printed on one home printer (Prusa CORE One) from [`MANTA_LIGHT/`](MANTA_LIGHT)
+— the same form as the competition entry at 75 % wall thickness, 15 %
+gyroid, 4 perimeters — and glued with two-part epoxy thickened with fumed
+silica. The small black chair is the first study model. What it took:
+
+| | light prototype (built) | competition entry |
+|---|---|---|
+| filament (PrusaSlicer) | ~8.9 kg, ~57 EUR | ~16.4 kg, ~90 EUR |
+| printing on one printer | ~160 h | ~460 h |
+| epoxy, 1 l with hardener | 13.57 EUR | ~13.57 EUR |
+| fumed silica (thickener) | 6.36 EUR | ~6.36 EUR |
+| **total** | **~77 EUR** | **~110 EUR** |
+
+No two of its 41 segments are identical, on purpose: nothing in
 nature repeats, so nothing here does either. Change a few tables in
 `manta_ribbon.py` and the same script regenerates a lighter, cheaper, or
 differently-sized chair with the same joints — this repo *is* that script.

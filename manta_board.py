@@ -54,8 +54,8 @@ grid_block = board.crop(GRID_SRC_BOX)
 dr.rectangle(GRID_SRC_BOX, fill=(255, 255, 255))
 board.paste(grid_block, (GRID_SRC_BOX[0] + GRID_DX, GRID_SRC_BOX[1] + GRID_DY))
 
-# the template's 49-slot grid stays whole (unused slots 43-49 = empty, allowed) —
-# each of the 42 used boxes gets a small picture of that actual part (like a
+# the template's 49-slot grid stays whole (unused slots 44-49 = empty, allowed) —
+# each of the 43 used boxes gets a small picture of that actual part (like a
 # real furniture-assembly manual), with the box's own printed number redrawn
 # on top in a corner so it stays legible regardless of what's under it.
 # exact cell boundaries measured on _board_base.png (columns/rows are NOT
@@ -64,7 +64,7 @@ board.paste(grid_block, (GRID_SRC_BOX[0] + GRID_DX, GRID_SRC_BOX[1] + GRID_DY))
 COL_B = [x + GRID_DX for x in (148.5, 224.0, 299.5, 375.0, 450.5, 526.0, 602.0, 677.5)]
 ROW_B = [y + GRID_DY for y in (2039.8, 2115.0, 2190.0, 2265.0, 2341.0, 2416.0, 2491.0, 2566.2)]
 THUMBS = f"{D}/thumbs"
-for n in range(1, 43):
+for n in range(1, len(_part_names()) + 1):        # 43 = the piece split off at the crossing
     p = f"{THUMBS}/{n:02d}.png"
     if not os.path.exists(p):
         continue
@@ -125,16 +125,34 @@ M = 150
 # ============ HEADER ============
 dr.text((M, 120), "MANTA", font=F(146, True), fill=INK)
 dr.rectangle((M + 4, 108, M + 14, 258), fill=TEAL)      # ocean-teal accent tick beside the name
-wrap((M + 40, 292), "One continuous ribbon, sliced crosswise so it prints on a home bed and still holds an adult.",
+wrap((M + 40, 292), "A wave that rose from the sea floor and stayed: one ribbon, sliced crosswise so it prints at home and still holds an adult.",
      F(44), SUB, maxw=4200)
 dr.line((M, 392, W-M, 392), fill=TEAL, width=5)
 
 # ============ VISUALISATION (top) ============
 section((M, 432), "VISUALISATION")
 img("b_hero.png", (M, 470, 2980, 2520))
-img("b_side.png", (3010, 486, 3820, 2170))
-img("b_back.png", (3830, 486, 4720, 2170))
-img("b_top.png",  (3060, 2110, 4360, 2500))
+# the REAL chair: printed at home, glued, photographed -- next to the render
+def photo(path, box, focus=(0.5, 0.5)):
+    x0, y0, x1, y1 = box
+    bw, bh = x1 - x0, y1 - y0
+    if not os.path.exists(path):
+        dr.rectangle(box, outline=HAIR, width=3); return
+    im = Image.open(path).convert("RGB")
+    s = max(bw / im.width, bh / im.height)
+    im = im.resize((max(bw, int(im.width * s)), max(bh, int(im.height * s))))
+    ox, oy = int((im.width - bw) * focus[0]), int((im.height - bh) * focus[1])
+    board.paste(im.crop((ox, oy, ox + bw, oy + bh)), (x0, y0))
+
+photo("photos/prototype_4.jpg", (3010, 486, 3860, 1610))                    # side
+photo("photos/prototype_7.jpg", (3870, 486, 4720, 1610))                    # study model on the seat
+photo("photos/prototype_3.jpg", (3010, 1620, 3860, 2440), focus=(0.35, 0.55))  # study model + chair
+photo("photos/prototype_5.jpg", (3870, 1620, 4720, 2440), focus=(0.5, 0.62))   # study model in the palm
+dr.rounded_rectangle((3030, 506, 3720, 570), radius=12, fill=TEAL)
+dr.text((3052, 538), "BUILT  -  full-size prototype", font=F(34, True), fill=(255, 255, 255), anchor="lm")
+wrap((3010, 2452), "Printed at home (light variant: same form, 75 % wall): ~9 kg, ~160 h, ~77 EUR incl. glue. "
+     "Deep blue feet, foam-pale crest; the white seams are sea foam, epoxy with silica. Black: the first study model.",
+     F(24), SUB, maxw=1710, sp=4)
 
 # ============ STRUCTURE & STABILITY (clear space, right of top view) ============
 section((4790, 470), "STRUCTURE & STABILITY", size=34)
@@ -220,9 +238,9 @@ rows = [
  ("LAYER / NOZZLE", "0.20 mm  /  0.4 mm"),
  ("WALLS", "5 perimeters"),
  ("INFILL", "35 % gyroid  (kept low — the ribbon's own bulk carries the load)"),
- ("ADHESIVE", "two-part epoxy (structural)"),
+ ("ADHESIVE", "two-part epoxy thickened with fumed silica: ~20 EUR for the whole chair"),
  ("PIN", "dia 11 x 133 mm rod, 100 % infill, printed lying on its flat, x4 (2 lumbar joints)"),
- ("EST. WEIGHT", "~16.5 kg  -  ~90 EUR in budget filament (PrusaSlicer)"),
+ ("EST. WEIGHT", "~16.5 kg  -  ~110 EUR: ~90 filament (PrusaSlicer) + ~20 epoxy"),
  ("BATCH TIME", "~460 h on one printer (PrusaSlicer estimate)"),
 ]
 y = 2680

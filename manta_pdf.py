@@ -63,7 +63,7 @@ def section_header(title):
 
 def stat_strip():
     stats = [("~250 kg", "safe static load"), ("26×", "glued full-section joint"),
-             ("~16.5 kg", "finished weight"), ("~90 €", "filament cost")]
+             ("~16.5 kg", "finished weight"), ("~110 €", "filament + epoxy")]
     cells = [[Paragraph(big, STAT_BIG)] for big, _ in stats]
     lbls = [[Paragraph(lbl, STAT_LBL)] for _, lbl in stats]
     t = Table([[c[0] for c in cells], [l[0] for l in lbls]], colWidths=[42.5 * mm] * 4)
@@ -148,8 +148,8 @@ def draw_band(c, doc):
     c.drawString(25 * mm, ph - 18.5 * mm, "MANTA")
     c.setFont("Helvetica-Oblique", 8.3)
     c.setFillColor(colors.HexColor("#a9d3d3"))
-    sub1 = "One continuous ribbon. One gesture."
-    sub2 = "Cut like a baguette so it can be printed at home and still hold an adult."
+    sub1 = "A wave that rose from the sea floor and stayed."
+    sub2 = "One ribbon, cut like a baguette so it prints at home and still holds an adult."
     c.drawString(25 * mm, ph - 26 * mm, sub1)
     c.drawString(25 * mm, ph - 31.5 * mm, sub2)
     c.restoreState()
