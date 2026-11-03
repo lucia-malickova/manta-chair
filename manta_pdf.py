@@ -208,21 +208,83 @@ def draw_band(c, doc):
     for k in range(0, 211, 3):
         p.lineTo(k * mm, wy + 0.9 * mm * math.sin(k / 9.0))
     c.drawPath(p, stroke=1, fill=0)
-    for x, kind, rgb in [(28, "b", (0.55, 0.62, 0.68)), (44, "c", (0.80, 0.52, 0.40)), (61, "g", (0.62, 0.68, 0.72)),
-                         (96, "b", (0.80, 0.52, 0.40)), (118, "c", (0.55, 0.62, 0.68)), (182, "g", (0.55, 0.62, 0.68)),
-                         (196, "c", (0.62, 0.68, 0.72))]:
-        X, Y = x * mm, wy + 0.9 * mm * math.sin(x / 9.0)
+    # the same recognisable plastic as on the board: bottles, bags, six-pack
+    # rings, straws, cups, a scrap of net, caps -- and microplastics below
+    def _poly(X, Y, pts, a=0.0, k=1.0):
+        ca, sa = math.cos(a), math.sin(a)
+        q = c.beginPath()
+        for n, (px, py) in enumerate(pts):
+            x_, y_ = X + k * (px * ca - py * sa) * mm, Y + k * (px * sa + py * ca) * mm
+            q.moveTo(x_, y_) if n == 0 else q.lineTo(x_, y_)
+        q.close(); c.drawPath(q, fill=1, stroke=0)
+
+    def bottle(X, Y, a=0.0, cap=(0.84, 0.25, 0.20)):
+        c.setFillColorRGB(0.59, 0.77, 0.84)
+        _poly(X, Y, [(-4.4, -1.1), (2.1, -1.1), (3.1, -0.6), (4.4, -0.6), (4.4, 0.6), (3.1, 0.6), (2.1, 1.1), (-4.4, 1.1)], a)
+        c.setFillColorRGB(0.93, 0.94, 0.95)
+        _poly(X, Y, [(-2.5, -1.1), (0.3, -1.1), (0.3, 1.1), (-2.5, 1.1)], a)
+        c.setFillColorRGB(*cap)
+        _poly(X, Y, [(4.4, -0.75), (5.2, -0.75), (5.2, 0.75), (4.4, 0.75)], a)
+
+    def bag(X, Y):
+        c.setFillColorRGB(0.74, 0.81, 0.85)
+        _poly(X, Y, [(-3.2, -0.4), (-2.1, 1.5), (-0.4, 0.7), (0.8, 2.1), (2.4, 0.6), (3.6, -0.3), (1.4, -1.0), (-1.4, -1.1)])
+        c.setStrokeColorRGB(0.74, 0.81, 0.85); c.setLineWidth(0.9)
+        c.arc(X - 2.1 * mm, Y + 0.6 * mm, X - 0.3 * mm, Y + 3.2 * mm, 0, 180)
+
+    def rings(X, Y):
+        c.setStrokeColorRGB(0.80, 0.70, 0.42); c.setLineWidth(0.9)
+        for i_ in range(3):
+            for j_ in range(2):
+                cx_, cy_ = X + (i_ - 1) * 2.1 * mm, Y + (j_ - 0.5) * 1.5 * mm
+                c.ellipse(cx_ - 1.05 * mm, cy_ - 0.7 * mm, cx_ + 1.05 * mm, cy_ + 0.7 * mm, stroke=1, fill=0)
+
+    def straw(X, Y, a=0.0):
+        ca, sa = math.cos(a), math.sin(a)
+        c.setStrokeColorRGB(0.93, 0.36, 0.49); c.setLineWidth(1.3); c.setLineCap(1)
+        pts = [(-4.2, 0), (2.1, 0), (3.6, 1.3)]
+        q = c.beginPath()
+        for n, (px, py) in enumerate(pts):
+            x_, y_ = X + (px * ca - py * sa) * mm, Y + (px * sa + py * ca) * mm
+            q.moveTo(x_, y_) if n == 0 else q.lineTo(x_, y_)
+        c.drawPath(q, stroke=1, fill=0)
+
+    def cup(X, Y, a=0.0):
+        c.setFillColorRGB(0.96, 0.96, 0.94)
+        _poly(X, Y, [(-2.1, 1.5), (2.1, 1.1), (2.1, -1.1), (-2.1, -1.5)], a)
+        c.setFillColorRGB(0.24, 0.59, 0.78)
+        _poly(X, Y, [(2.1, 1.4), (2.7, 1.4), (2.7, -1.4), (2.1, -1.4)], a)
+
+    def capf(X, Y, rgb=(0.77, 0.55, 0.44)):
         c.setFillColorRGB(*rgb)
-        if kind == "b":
-            c.roundRect(X - 5 * mm, Y - 1.1 * mm, 8 * mm, 2.4 * mm, 1 * mm, fill=1, stroke=0)
-            c.rect(X + 3 * mm, Y - 0.55 * mm, 1.6 * mm, 1.3 * mm, fill=1, stroke=0)
-        elif kind == "c":
-            c.circle(X, Y + 0.2 * mm, 1.1 * mm, fill=1, stroke=0)
-        else:
-            q = c.beginPath(); q.moveTo(X - 4 * mm, Y)
-            for dx, dy in [(-2.4, 2.2), (-0.4, 0.9), (1.2, 2.6), (3.2, 0.6), (4.2, -0.6), (0.5, -1.2)]:
-                q.lineTo(X + dx * mm, Y + dy * mm)
-            q.close(); c.drawPath(q, fill=1, stroke=0)
+        c.ellipse(X - 1.1 * mm, Y - 0.75 * mm, X + 1.1 * mm, Y + 0.75 * mm, stroke=0, fill=1)
+
+    def net(X, Y, w=10.0, h=3.0):
+        c.setStrokeColorRGB(0.38, 0.63, 0.52); c.setLineWidth(0.5)
+        t = -w / 2
+        while t <= w / 2:
+            c.line(X + (t - 1) * mm, Y - h / 2 * mm, X + (t + 1) * mm, Y + h / 2 * mm)
+            c.line(X + (t + 1) * mm, Y - h / 2 * mm, X + (t - 1) * mm, Y + h / 2 * mm)
+            t += 1.3
+
+    def wl(x):
+        return wy + 0.9 * mm * math.sin(x / 9.0) + 0.35 * mm
+
+    # microplastics first, so the floating things sit on top of them
+    rm = random.Random(7)
+    mcols = [(0.84, 0.47, 0.38), (0.59, 0.77, 0.84), (0.90, 0.90, 0.84), (0.93, 0.36, 0.49), (0.38, 0.63, 0.52)]
+    for _ in range(170):
+        x = rm.uniform(3, 207)
+        d = 5.5 * rm.random() ** 1.7
+        r = rm.uniform(0.18, 0.45) * (1 - d / 7.5)
+        c.setFillColorRGB(*rm.choice(mcols))
+        c.circle(x * mm, wl(x) - 0.6 * mm - d * mm, r * mm, stroke=0, fill=1)
+    bottle(14 * mm, wl(14), 0.08); capf(23 * mm, wl(23)); rings(31 * mm, wl(31)); bag(42 * mm, wl(42))
+    straw(54 * mm, wl(54), 0.05); bottle(66 * mm, wl(66), -0.12, (0.16, 0.47, 0.78)); cup(78 * mm, wl(78), 0.3)
+    net(90 * mm, wl(90)); capf(100 * mm, wl(100), (0.24, 0.59, 0.78)); bottle(110 * mm, wl(110), 0.15)
+    bag(122 * mm, wl(122)); rings(133 * mm, wl(133)); straw(144 * mm, wl(144), -0.1); cup(154 * mm, wl(154), -0.25)
+    capf(163 * mm, wl(163), (0.84, 0.25, 0.20)); bottle(173 * mm, wl(173), -0.08); net(186 * mm, wl(186), 8)
+    bag(198 * mm, wl(198)); capf(206 * mm, wl(206))
     # a porthole onto the chair
     R = (BAND_H - 12 * mm) / 2
     pcx, pcy = pw - 16 * mm - R, ph - BAND_H / 2 + 1 * mm
