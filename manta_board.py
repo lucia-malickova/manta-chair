@@ -146,6 +146,14 @@ def section(xy, title, size=34, col=None, bar=None):
     dr.rectangle((x, y + 6, x + 10, y + size - 4), fill=bar or TEAL)
     dr.text((x + 24, y), title, font=F(size, True), fill=col or TEAL_DK)
 
+def textwrap_lines(s, font, maxw):
+    words, lines, cur = s.split(), [], ""
+    for w in words:
+        if dr.textlength((cur + " " + w).strip(), font=font) <= maxw: cur = (cur + " " + w).strip()
+        else: lines.append(cur); cur = w
+    return lines + [cur]
+
+
 def wrap(xy, s, font, fill=INK, maxw=900, sp=9, anchor="la"):
     words, lines, cur = s.split(), [], ""
     for w in words:
@@ -262,30 +270,32 @@ def bubbles(box, n, seed, rmax=34):
         dr.ellipse((x - r * 0.45, y - r * 0.55, x - r * 0.15, y - r * 0.25), fill=(255, 255, 255))
 
 
-bubbles((4800, 1700, 6060, 2500), 80, 3, 34)       # oxygen rising under the stability column
-dr.text((5940, 1820), "O", font=F(52, True), fill=(80, 160, 170), anchor="mm")
-dr.text((5972, 1838), "2", font=F(30, True), fill=(80, 160, 170), anchor="mm")
+bubbles((4800, 1980, 6060, 2500), 55, 3, 34)       # oxygen rising under the stability column
+dr.text((5940, 2060), "O", font=F(52, True), fill=(80, 160, 170), anchor="mm")
+dr.text((5972, 2078), "2", font=F(30, True), fill=(80, 160, 170), anchor="mm")
 
 # ============ STRUCTURE & STABILITY (clear space, right of the photos) ============
 section((4790, 470), "STRUCTURE & STABILITY", size=34)
-wrap((4790, 532), "The entry chair, made for 120 kg. Checked with that load ×1.8 for sitting down hard "
+wrap((4790, 540), "The entry chair, made for 120 kg. Checked with that load ×1.8 for sitting down hard "
      "and ×2 for safety: every part passes.",
-     F(32), SUB, maxw=1320, sp=11)
+     F(36), SUB, maxw=1320, sp=12)
 stats = [
     ("~250 kg", "it can safely carry, standing still"),
     ("2.1×", "even its weakest glued joint holds 2.1 times the checked load"),
     ("0.56 / 0.77", "tipping, sideways / backwards: above 0.5 means it does not tip over"),
 ]
 for k, (big, label) in enumerate(stats):
-    yy_ = 690 + k * 230
-    dr.text((4790, yy_), big, font=F(96, True), fill=TEAL_DK)
-    wrap((5420, yy_ + 14), label, F(33), SUB, maxw=700, sp=11)
-# dimensions in one line, then the ergonomics note
-dr.line((4790, 1400, 4790 + 1330, 1400), fill=HAIR, width=3)
-dr.text((4790, 1436), "seat 429 × 364  ·  height 428  ·  tilt 5°  ·  overall 812 × 698 × 998 mm",
-        font=F(34, True), fill=TEAL_DK)
-wrap((4790, 1500), "Every dimension checked against seating-ergonomics reference "
-     "ranges by script: 8 of 8 pass.", F(31), SUB, maxw=1330, sp=10)
+    yy_ = 730 + k * 290
+    dr.text((4790, yy_), big, font=F(118, True), fill=TEAL_DK)
+    lab_y = yy_ + 70
+    n_ = len(textwrap_lines(label, F(37), 560))
+    wrap((5530, lab_y - n_ * 24), label, F(37), SUB, maxw=560, sp=11)
+# dimensions, then the ergonomics note
+dr.line((4790, 1610, 4790 + 1330, 1610), fill=HAIR, width=3)
+dr.text((4790, 1648), "seat 429 × 364  ·  height 428  ·  tilt 5°", font=F(42, True), fill=TEAL_DK)
+dr.text((4790, 1712), "overall 812 × 698 × 998 mm", font=F(42, True), fill=TEAL_DK)
+wrap((4790, 1790), "Every dimension checked against seating-ergonomics reference "
+     "ranges by script: 8 of 8 pass.", F(34), SUB, maxw=1330, sp=11)
 
 # ============ THE FORM: how it was found, mirroring THE IDEA on the other side ============
 def cutout(path, box):
@@ -335,8 +345,8 @@ bio = [
 y = 562
 for j, (k, v) in enumerate(bio):
     dr.rectangle((cx - 22, y + 4, cx - 14, y + 146), fill=depth(0.1 + 0.15 * j))
-    dr.text((cx, y), k, font=F(32, True), fill=INK)
-    wrap((cx, y+44), v, F(27), SUB, maxw=790, sp=10)
+    dr.text((cx, y), k, font=F(35, True), fill=INK)
+    wrap((cx, y+47), v, F(29), SUB, maxw=790, sp=8)
     y += 190
 
 hband(M, W - M, 2540, 8)
