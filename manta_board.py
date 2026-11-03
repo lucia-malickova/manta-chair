@@ -262,64 +262,62 @@ def bubbles(box, n, seed, rmax=34):
         dr.ellipse((x - r * 0.45, y - r * 0.55, x - r * 0.15, y - r * 0.25), fill=(255, 255, 255))
 
 
-bubbles((2575, 520, 2990, 2480), 85, 1)          # between the render and the photos
-bubbles((4800, 2230, 6060, 2500), 50, 3, 30)       # under the stability column
-dr.text((5960, 2290), "O", font=F(46, True), fill=(80, 160, 170), anchor="mm")
-dr.text((5988, 2306), "2", font=F(26, True), fill=(80, 160, 170), anchor="mm")
-dr.text((2780, 1500), "O", font=F(46, True), fill=(80, 160, 170), anchor="mm")
-dr.text((2808, 1516), "2", font=F(26, True), fill=(80, 160, 170), anchor="mm")
+bubbles((4800, 1700, 6060, 2500), 80, 3, 34)       # oxygen rising under the stability column
+dr.text((5940, 1820), "O", font=F(52, True), fill=(80, 160, 170), anchor="mm")
+dr.text((5972, 1838), "2", font=F(30, True), fill=(80, 160, 170), anchor="mm")
 
-# ============ STRUCTURE & STABILITY (clear space, right of top view) ============
+# ============ STRUCTURE & STABILITY (clear space, right of the photos) ============
 section((4790, 470), "STRUCTURE & STABILITY", size=34)
-wrap((4790, 530), "The entry chair, made for 120 kg. Checked with that load ×1.8 for sitting down hard "
+wrap((4790, 532), "The entry chair, made for 120 kg. Checked with that load ×1.8 for sitting down hard "
      "and ×2 for safety: every part passes.",
-     F(29), SUB, maxw=1320, sp=10)
+     F(32), SUB, maxw=1320, sp=11)
 stats = [
     ("~250 kg", "it can safely carry, standing still"),
     ("2.1×", "even its weakest glued joint holds 2.1 times the checked load"),
     ("0.56 / 0.77", "tipping, sideways / backwards: above 0.5 means it does not tip over"),
 ]
-for (big, label), (x, w) in zip(stats, [(4790, 370), (5200, 400), (5640, 480)]):
-    dr.text((x, 680), big, font=F(84, True), fill=TEAL_DK)
-    wrap((x, 800), label, F(29), SUB, maxw=w, sp=11)
+for k, (big, label) in enumerate(stats):
+    yy_ = 690 + k * 230
+    dr.text((4790, yy_), big, font=F(96, True), fill=TEAL_DK)
+    wrap((5420, yy_ + 14), label, F(33), SUB, maxw=700, sp=11)
 # dimensions in one line, then the ergonomics note
-dr.line((4790, 1010, 4790 + 1330, 1010), fill=HAIR, width=3)
-dr.text((4790, 1045), "seat 429 × 364  ·  height 428  ·  tilt 5°  ·  overall 812 × 698 × 998 mm",
-        font=F(32, True), fill=TEAL_DK)
-wrap((4790, 1108), "Every dimension checked against seating-ergonomics reference "
-     "ranges by script: 8 of 8 pass.", F(28), SUB, maxw=1330, sp=9)
+dr.line((4790, 1400, 4790 + 1330, 1400), fill=HAIR, width=3)
+dr.text((4790, 1436), "seat 429 × 364  ·  height 428  ·  tilt 5°  ·  overall 812 × 698 × 998 mm",
+        font=F(34, True), fill=TEAL_DK)
+wrap((4790, 1500), "Every dimension checked against seating-ergonomics reference "
+     "ranges by script: 8 of 8 pass.", F(31), SUB, maxw=1330, sp=10)
 
-# how the form was found: three generations of the ribbon, each rebuilt and
-# re-checked by the code, to MANTA
-section((4790, 1250), "HOW THE FORM WAS FOUND", size=32)
-dr.text((4790 + 26, 1298), "three generations of the ribbon, each rebuilt and re-checked by the code",
-        font=F(26), fill=SUB)
-
-
+# ============ THE FORM: how it was found, mirroring THE IDEA on the other side ============
 def cutout(path, box):
-    """an image on white, keyed onto the board (white -> transparent)"""
+    """a grey render on white, keyed onto the board (white -> transparent) and
+    toned in the sea's turquoise, its shading kept"""
+    from PIL import ImageOps
     im = Image.open(path).convert("RGB").crop(box)
-    im.putalpha(im.convert("L").point(lambda v: 255 if v < 200 else max(0, (250 - v) * 5)))
+    L = im.convert("L")
+    a = L.point(lambda v: 255 if v < 200 else max(0, (250 - v) * 5))
+    im = ImageOps.colorize(ImageOps.autocontrast(L.point(lambda v: min(v, 200))),
+                           black=(6, 50, 66), mid=(10, 128, 138), white=(150, 222, 220))
+    im.putalpha(a)
     return im
 
 
-def place(im, x, y, w, h):
-    im = im.copy()
-    im.thumbnail((w, h))
-    board.paste(im, (x + (w - im.width) // 2, y + (h - im.height)), im)
-
-
+fx0, fx1 = 2600, 2980
+fcx = (fx0 + fx1) // 2
+dr.text((fx0, 520), "THE FORM", font=F(32, True), fill=TEAL_DK)
+wrap((fx0, 568), "three generations of the ribbon, each rebuilt and re-checked by the code",
+     F(26), SUB, maxw=fx1 - fx0, sp=5)
 gens = [(("_stuha_v1.png", (980, 300, 1190, 725)), "v1"), (("_stuha_v2.png", (740, 350, 1000, 700)), "v2"),
         (("_stuha_v3.png", (690, 360, 1030, 730)), "v3: MANTA")]
-hx = [4790 + k * 455 for k in range(3)]
-FY0, FY1 = 1400, 1900
+fy = 700
 for k, ((p, box), lab) in enumerate(gens):
-    place(cutout(p, box), hx[k], FY0, 380, FY1 - FY0)
-    dr.text((hx[k] + 190, FY1 + 18), lab, font=F(30, True), fill=TEAL_DK, anchor="mt")
+    im = cutout(p, box)
+    im.thumbnail((fx1 - fx0, 480))
+    board.paste(im, (fcx - im.width // 2, fy + 480 - im.height), im)
+    dr.text((fcx, fy + 496), lab, font=F(34, True), fill=depth(0.15 + 0.2 * k), anchor="mt")
     if k < len(gens) - 1:
-        ax_ = hx[k] + 405
-        dr.polygon([(ax_, (FY0 + FY1) // 2 - 16), (ax_ + 28, (FY0 + FY1) // 2), (ax_, (FY0 + FY1) // 2 + 16)],
-                   fill=TEAL)
+        ay_ = fy + 560
+        dr.line((fcx - 20, ay_, fcx, ay_ + 22, fcx + 20, ay_), fill=TEAL, width=6, joint="curve")
+    fy += 610
 
 # biomimicry / concept callouts (top right) — kept clear of the key grid,
 # which starts at y~1700 in this column
