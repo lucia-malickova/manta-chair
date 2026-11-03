@@ -163,7 +163,7 @@ def draw_footer(c, doc):
     c.line(20 * mm, 13.5 * mm, pw - 20 * mm, 13.5 * mm)
     c.setFont("Helvetica", 7.3)
     c.setFillColor(SUB)
-    c.drawString(20 * mm, 9.5 * mm, "MANTA — Open Chair 2026, chair description")
+    c.drawString(20 * mm, 9.5 * mm, "MANTA")
     c.setFont("Helvetica-Bold", 7.6)
     c.setFillColor(TEAL_DK)
     c.drawRightString(pw - 20 * mm, 9.5 * mm, "Anonymised source: anonymous.4open.science/r/manta-chair-23D4")

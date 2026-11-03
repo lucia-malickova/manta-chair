@@ -2,7 +2,7 @@
 
 **The ocean makes the oxygen we breathe, and it is full of our plastic. MANTA is a wave of it, printed with under 1 % waste.**
 
-## The story — oxygen, plastic and a wave
+## The story
 
 At least half of the oxygen we breathe comes from the ocean, so MANTA is a
 story of life: a wave that rose from the sea floor and stayed. Its feet hold
@@ -15,17 +15,17 @@ every seam is left white like spray, and the flutes follow the current.
 Yet we fill that ocean with plastic; microplastics are now found even in
 human blood. And more and more of us, children too, print plastic at home.
 MANTA is plastic as well, so it is printed with sense: biomimicry puts
-material only where the load is, the parts need under 1 % of their filament
-as support, none trapped in a hole, and we recommend recycled PETG. A chair
+material only where the load is, under 1 % of the filament is support, and
+we recommend recycled PETG. A chair
 can carry that message and still be beautiful.
 
-## Biomimicry — every section sized by its load
+## Biomimicry — sized by load
 
-- **Wolff's law** — thickness follows the bending moment: 84 mm at the lumbar knot, 32 mm at the crest.
-- **Murray's law** — the lumbar, the one true junction, is the cube-root-sum of its branches.
+- **Wolff's law** — thickness follows the bending moment: 84 mm at the lumbar, 32 mm at the crest.
+- **Murray's law** — the lumbar junction is the cube-root-sum of its branches.
 - **Spiral fibre** — flutes run along the stress path and stiffen by corrugation.
-- **Shell** — the closed section and dished seat carry load as a shell.
-- **Fiddlehead loop** — the crest returns through the backrest: a closed loop, not a cantilever.
+- **Shell** — the closed section and dished seat work as a shell.
+- **Fiddlehead loop** — the crest returns through the backrest: a closed loop.
 - **Buttress roots** — forked feet: a wide stance from little material.
 
 ## The algorithm — print only the chair you need
@@ -37,13 +37,12 @@ export a chair that would fail. So anyone can print a lighter or a stronger
 MANTA, and only the plastic they need: the 70 kg version built here uses
 about half the filament of the 120 kg entry. At 120 kg: weakest glued check
 2.1×, tipping 0.56 sideways and 0.55–0.77 rearward, 8/8 ergonomics checks.
-One command (manta_verify.py) re-checks it all: a **virtual assembly** of
-all 43 parts, bed fit, and the support PrusaSlicer really adds. No two of
-the 42 ribbon pieces are alike.
+manta_verify.py re-checks it all, including a **virtual assembly** of all 43
+parts.
 
-## Built — computed joints, printed at home
+## Built and printed at home
 
-Cuts avoid the knee and lumbar, where bending peaks. Every joint is a full
+Every joint is a full
 solid cross-section, epoxied and centred by a conical peg; the two
 most-loaded are pinned, and where the crest crosses the backrest it is glued
 on as a saddle. 43 parts, each ≤ 212 × 220 × 250 mm; PETG: ~16.5 kg,
