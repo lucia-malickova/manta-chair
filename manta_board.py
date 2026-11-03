@@ -159,8 +159,8 @@ M = 150
 # ============ HEADER ============
 dr.text((M, 120), "MANTA", font=F(146, True), fill=INK)
 dr.rectangle((M + 4, 108, M + 14, 258), fill=TEAL)      # ocean-teal accent tick beside the name
-wrap((M + 40, 278), "Made by its own algorithm: it rebuilds and re-checks the chair for the weight you need, "
-     "so you print only the chair you need.", F(32), SUB, maxw=1330, sp=6)
+wrap((M + 40, 278), "Made by its own algorithm: tell it who the chair is for, and it rebuilds and "
+     "re-checks every part, so you print only the plastic you need.", F(32), SUB, maxw=1330, sp=6)
 
 
 def hband(x0, x1, y, h=8):
@@ -502,8 +502,10 @@ dr.text((ix0, 520), "THE IDEA", font=F(32, True), fill=TEAL_DK)
 
 
 def idea_caption(y, title, sub, t):
-    dr.text((icx, y), title, font=F(34, True), fill=depth(t), anchor="mt")
-    return wrap((icx, y + 46), sub, F(26), SUB, maxw=iw, sp=5, anchor="ma")
+    if title:
+        dr.text((icx, y), title, font=F(34, True), fill=depth(t), anchor="mt")
+        y += 46
+    return wrap((icx, y), sub, F(26), SUB, maxw=iw, sp=5, anchor="ma")
 
 
 def idea_arrow(y):
@@ -531,17 +533,17 @@ for k in range(7):
     a = -math.pi / 2 + k * 0.32
     bx, by_ = cx_ + (R + 28) * math.cos(a) + 10, cy_ + (R + 28) * math.sin(a)
     dr.ellipse((bx - 7, by_ - 7, bx + 7, by_ + 7), outline=(120, 196, 204), width=3)
-y = idea_caption(y0 + h + 14, "A WAVE", "from the ocean that makes half of our oxygen", 0.15)
+y = idea_caption(y0 + h + 14, "WAVE", "from the ocean that makes half of our oxygen", 0.15)
 y = idea_arrow(y + 30)
 
 # 2. a manta: its fins become the feet
 manta(icx, y + 130, 340, 0.0, depth(0.3))
-y = idea_caption(y + 360, "A MANTA", "its fins become the feet", 0.3)
+y = idea_caption(y + 360, "MANTA", "its fins become the feet", 0.3)
 y = idea_arrow(y + 30)
 
 # 3. an M: Manta, Mare
 dr.text((icx, y + 120), "M", font=F(230, True), fill=depth(0.5), anchor="mm")
-y = idea_caption(y + 250, "AN M", "Manta, Mare: drawn by the side profile", 0.45)
+y = idea_caption(y + 250, "", "for Manta and Mare, drawn by the side profile", 0.45)
 y = idea_arrow(y + 30)
 
 # 4. the chair, seen from the side
@@ -552,7 +554,7 @@ _sd = _sd.resize((_sw, _sh))
 _sm = Image.new("L", _sd.size, 0)
 ImageDraw.Draw(_sm).rounded_rectangle((0, 0, _sw - 1, _sh - 1), radius=26, fill=255)
 board.paste(_sd, (icx - _sw // 2, y + 30), _sm)
-idea_caption(y + 30 + _sh + 14, "A CHAIR", "one ribbon in 43 printed parts", 0.6)
+idea_caption(y + 30 + _sh + 14, "CHAIR", "one ribbon in 43 printed parts", 0.6)
 
 # what MANTA throws away: its supports, against the chair itself
 wx0, wy0, wx1 = 3230, 4470, 5060
