@@ -28,7 +28,7 @@ TOPMARGIN = BAND_H + 7 * mm
 # drops into the header band with no masking needed). The background is a
 # vertical gradient, not flat, so detect the chair by diffing each pixel
 # against its own row's background sample instead of a fixed colour. ----
-BANNER = "_pdf_banner.png"
+BANNER = "_pdf_banner.jpg"   # a ~4 cm icon: 800 px is plenty (the full PNG was 2.3 MB of the PDF)
 _im = PILImage.open("_deliver/b_hero.png").convert("RGB")
 _arr = np.array(_im).astype(int)
 _bg_row = _arr[:, 20, :]
@@ -38,7 +38,9 @@ _x0, _x1, _y0, _y1 = _xs.min(), _xs.max(), _ys.min(), _ys.max()
 _cx, _cy = (_x0 + _x1) / 2, (_y0 + _y1) / 2
 _half = max(_x1 - _x0, _y1 - _y0) / 2 * 1.10
 _box = (int(_cx - _half), int(_cy - _half), int(_cx + _half), int(_cy + _half))
-_im.crop(_box).save(BANNER)
+_ban = _im.crop(_box)
+_ban.thumbnail((800, 800))
+_ban.save(BANNER, quality=88)
 
 src = open("MANTA_Description_DRAFT.md", encoding="utf-8").read()
 styles = getSampleStyleSheet()

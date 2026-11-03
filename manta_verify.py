@@ -19,7 +19,7 @@ Checks, per variant:
   slicer       PrusaSlicer adds < 2 % support and < 1 g inside holes
                (slow; skipped if PrusaSlicer isn't installed)
 and once for the submission:
-  description  <= 500 words, 1 page;   package <= 15 MB
+  description  <= 500 words, 1 page;   package <= 10 MB (brief; the site says 15)
 Exit code 0 = all passed.
 """
 import glob
@@ -147,7 +147,7 @@ def check_submission():
     code, out = run("manta_package.py")
     t = re.search(r"TOTAL\s+([\d.]+)", out)
     mb = float(t.group(1)) if t else 99.0
-    report("package", mb <= 15.0, f"{mb:.2f} MB of 15")
+    report("package", mb <= 10.0, f"{mb:.2f} MB of 10")
 
 
 def main(argv):
