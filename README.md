@@ -291,3 +291,10 @@ the epoxy won't bond well. Leave it clamped to cure for 24 h.
 - `_board_base.png` — the rasterised official board template (without instructions)
 - `3D_Template.stl` — the official 3D print file template (unmodified, as provided)
 - `MANTA_RIBBON/` — the 43 individual part STLs, clean and ready to print (no template geometry) — see "Printing the parts" above
+
+## License
+
+Open: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Print it,
+change it, share it, even sell it; give credit and share your changes under the
+same license. See [`LICENSE`](LICENSE). The official competition templates
+(`3D_Template.stl`, `_board_base.png`) are not covered and belong to their owners.

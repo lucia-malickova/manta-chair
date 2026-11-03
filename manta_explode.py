@@ -22,12 +22,14 @@ def read(path):
     return r.GetOutput()
 
 def actor(pd, col=(0.60, 0.64, 0.74)):
-    m = vtk.vtkPolyDataMapper(); m.SetInputData(pd)
+    nf = vtk.vtkPolyDataNormals(); nf.SetInputData(pd)          # smooth shading, sharp edges kept
+    nf.SetFeatureAngle(40); nf.SplittingOn(); nf.ConsistencyOn(); nf.Update()
+    m = vtk.vtkPolyDataMapper(); m.SetInputData(nf.GetOutput())
     a = vtk.vtkActor(); a.SetMapper(m)
     p = a.GetProperty()
     try: p.SetInterpolationToPBR(); p.SetMetallic(0.15); p.SetRoughness(0.5)
     except Exception: pass
-    p.SetColor(*col); p.SetEdgeVisibility(1); p.SetEdgeColor(0.3, 0.32, 0.38); p.SetLineWidth(0.6)
+    p.SetColor(*col); p.SetEdgeVisibility(0)          # no mesh lines: the parts read as smooth objects
     return a
 
 def scene(actors, fname, size, elev, azim, parallel=True, labels=(), legend=None):
@@ -41,7 +43,7 @@ def scene(actors, fname, size, elev, azim, parallel=True, labels=(), legend=None
     ren.SetBackground(0.47, 0.68, 0.75); ren.SetBackground2(0.80, 0.91, 0.93)
     ren.SetUseDepthPeeling(1); ren.SetMaximumNumberOfPeels(10)
     for a in actors: ren.AddActor(a)
-    for vec, inten in [((-0.5, -0.8, 0.6), 1.2), ((0.7, -0.2, 0.3), 0.6), ((0.2, 0.9, 0.4), 0.7)]:
+    for vec, inten in [((-0.5, -0.8, 0.6), 1.2), ((0.7, -0.2, 0.3), 0.6), ((0.2, 0.9, 0.4), 0.7), ((0.1, -0.3, -1.0), 0.45)]:
         L = vtk.vtkLight(); d = np.array(vec, float); d /= np.linalg.norm(d)
         L.SetLightTypeToSceneLight(); L.SetPosition(*(d*4000)); L.SetFocalPoint(0, 0, 0)
         L.SetIntensity(inten); ren.AddLight(L)

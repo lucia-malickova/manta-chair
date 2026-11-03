@@ -238,10 +238,11 @@ photo("photos/prototype_3.jpg", (3010, 1620, 3860, 2440), focus=(0.35, 0.55))  #
 photo("photos/prototype_7.jpg", (3870, 1620, 4720, 2440), focus=(0.5, 0.70))   # study model on the seat (whole chair)
 dr.rounded_rectangle((3030, 1530, 3600, 1592), radius=12, fill=DEEP)
 dr.text((3052, 1561), "the M, seen from the side", font=F(30, True), fill=FOAM, anchor="lm")
-dr.rounded_rectangle((3030, 506, 3720, 570), radius=12, fill=TEAL)
-dr.text((3052, 538), "BUILT  -  full-size prototype", font=F(34, True), fill=(255, 255, 255), anchor="lm")
-wrap((3010, 2450), "Printed at home (light variant, 75 % walls): ~9 kg, ~160 h, ~77 EUR with glue. "
-     "White seams = sea foam (epoxy + fumed silica). Black: the first study model.",
+_bt = "BUILT: the 70 kg version, full size"
+dr.rounded_rectangle((3030, 506, 3074 + dr.textlength(_bt, font=F(34, True)), 570), radius=12, fill=TEAL)
+dr.text((3052, 538), _bt, font=F(34, True), fill=(255, 255, 255), anchor="lm")
+wrap((3010, 2450), "Built at home: the 70 kg version (75 % walls, 15 % infill), 8.9 kg of filament, ~160 h, "
+     "~77 EUR with glue. White seams: sea foam. Black: the first study model.",
      F(27), SUB, maxw=1710, sp=5)
 
 def bubbles(box, n, seed, rmax=34):
@@ -266,12 +267,13 @@ dr.text((2808, 1516), "2", font=F(26, True), fill=(80, 160, 170), anchor="mm")
 
 # ============ STRUCTURE & STABILITY (clear space, right of top view) ============
 section((4790, 470), "STRUCTURE & STABILITY", size=34)
-wrap((4790, 530), "First-order check at 120 kg x 1.8 dynamic x 2.0 safety — every member passes.",
+wrap((4790, 530), "The entry chair, made for 120 kg. Checked with that load ×1.8 for sitting down hard "
+     "and ×2 for safety: every part passes.",
      F(28), SUB, maxw=1320, sp=6)
 stats = [
-    ("~250 kg", "safe static load, glued — weakest glued check 2.1x"),
-    ("26x", "the glued full cross-section, the real load path. With no glue at all, peg + solid pin alone still carry 0.9x of the full design load"),
-    ("0.56 / 0.77", "tipping ratio, sideways / rearward — greater than 0.5 counts as stable"),
+    ("~250 kg", "it can safely carry, standing still"),
+    ("2.1×", "even its weakest glued joint holds 2.1 times the checked load"),
+    ("0.56 / 0.77", "tipping, sideways / backwards: above 0.5 means it does not tip over"),
 ]
 sy = 660
 for big, label in stats:
@@ -282,16 +284,16 @@ for big, label in stats:
 # dimensions strip — fills the rest of this column, still well clear of the
 # key grid (which starts further right at x~6120)
 dr.line((4790, sy - 30, 4790 + 1330, sy - 30), fill=HAIR, width=3)
-dr.text((4790, sy), "429 x 364", font=F(46, True), fill=TEAL_DK)
-dr.text((4790, sy + 58), "seat W x D, mm", font=F(26), fill=SUB)
+dr.text((4790, sy), "429 × 364", font=F(46, True), fill=TEAL_DK)
+dr.text((4790, sy + 58), "seat width × depth, mm", font=F(26), fill=SUB)
 dr.text((4790 + 420, sy), "428", font=F(46, True), fill=TEAL_DK)
 dr.text((4790 + 420, sy + 58), "seat height, mm", font=F(26), fill=SUB)
-dr.text((4790 + 780, sy), "5 deg", font=F(46, True), fill=TEAL_DK)
+dr.text((4790 + 780, sy), "5°", font=F(46, True), fill=TEAL_DK)
 dr.text((4790 + 780, sy + 58), "rearward tilt", font=F(26), fill=SUB)
-dr.text((4790, sy + 140), "812 x 698 x 998", font=F(40, True), fill=TEAL_DK)
-dr.text((4790, sy + 190), "overall D x W x H, mm", font=F(26), fill=SUB)
+dr.text((4790, sy + 140), "812 × 698 × 998", font=F(40, True), fill=TEAL_DK)
+dr.text((4790, sy + 190), "depth × width × height, mm", font=F(26), fill=SUB)
 wrap((4790, sy + 250), "Every dimension checked against seating-ergonomics reference "
-     "ranges by script — 8/8 pass.", F(27), SUB, maxw=1330, sp=6)
+     "ranges by script: 8 of 8 pass.", F(27), SUB, maxw=1330, sp=6)
 
 # biomimicry / concept callouts (top right) — kept clear of the key grid,
 # which starts at y~1700 in this column
@@ -299,12 +301,12 @@ cx = 6180
 section((cx, 470), "BIOMIMICRY", size=32)
 dr.text((cx + 26, 512), "structural, not applied", font=F(26), fill=SUB)
 bio = [
- ("Wolff's law", "thickness follows the bending moment: 84 mm at the lumbar knot, 32 mm blade at the crown"),
- ("Murray's law", "the lumbar is the one 3-way node; section ~ cube-root-sum, every transition filleted"),
- ("Spiral fibre", "flutes follow the stress path + stiffen by corrugation; section twists up to 20 deg"),
- ("Shell curvature", "closed superelliptical section + dished seat carry load in membrane action"),
+ ("Wolff's law", "thickness follows the bending: 84 mm at the lumbar knot, a 32 mm blade at the crown"),
+ ("Murray's law", "the lumbar is the one 3-way node: three branches balanced like blood vessels"),
+ ("Spiral fibre", "flutes follow the stress path and stiffen the ribbon; the section twists up to 20°"),
+ ("Shell curvature", "a closed rounded section and a dished seat carry load like a shell"),
  ("Fiddlehead scroll", "the curled crown closes the backrest into a rigid loop, not a cantilever"),
- ("Buttress root", "each foot forks into two splayed prongs — wide base, little material"),
+ ("Buttress root", "each foot forks into two splayed prongs: a wide base from little material"),
 ]
 y = 562
 for j, (k, v) in enumerate(bio):
@@ -398,16 +400,16 @@ _ox, _oy = 150 + (2900 - _ex.width) // 2, 2690 + (2070 - _ex.height) // 2
 _rm = Image.new("L", _ex.size, 0)
 ImageDraw.Draw(_rm).rounded_rectangle((0, 0, _ex.width - 1, _ex.height - 1), radius=48, fill=255)
 board.paste(_ex, (_ox, _oy), _rm)
-wrap((170, 4770), "Exploded — 43 parts (42 pieces of ribbon + the pin), no two alike. Cuts and pegs are computed: cuts stay clear of the peak-load knee and lumbar, pegs follow the section, every joint verified by virtual assembly.",
+wrap((170, 4770), "Exploded: 43 parts (42 pieces of ribbon and the pin), no two alike. The cuts stay clear of the most loaded knee and lumbar; every joint is checked by virtual assembly.",
      F(28), DEEP_SUB, maxw=2800)
 
 steps = [
- ("1", "Lay out by zone", "Every part has its number (1-43) ENGRAVED on a glue face. In reading order they form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
- ("2", "Left + right halves FIRST", "Wide segments come in L+R halves. Glue each pair along the centre-line on its transverse peg (up to dia 20) before anything else; the seam is the keel."),
- ("3", "Crosswise joints", "Then join the segments: seat the printed conical peg (dia 27 at the face) in its socket, two-part epoxy over the whole face. No screws."),
- ("4", "Lumbar pins", "Only the two joints beside the lumbar: slide a dia 11 pin in from each side face until it stops (2 per joint) before the epoxy sets."),
- ("5", "The crossing, cure", "Where the ribbon returns through the backrest it is trimmed to the backrest's shape: epoxy the loop's end (27, 28 + small piece 43, split from 29) onto its front and the tail brace (29, 30) onto its back (saddle, 56 cm2). Build seat, backrest and fork-feet separately, cure 24 h, then join at the lumbar and knees."),
- ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~250 kg."),
+ ("1", "Lay out by zone", "Every part has its number (1 to 43) engraved on a glue face. Lay them out in six colour zones, from foot to foot."),
+ ("2", "Left and right halves first", "Wide pieces come in two halves. Glue each pair on its peg; the seam is the keel."),
+ ("3", "Crosswise joints", "Push each conical peg (Ø 27) into its socket, epoxy over the whole face. No screws."),
+ ("4", "Lumbar pins", "At the two lumbar joints, slide a Ø 11 pin in from each side before the epoxy sets."),
+ ("5", "The crossing", "Glue the loop's end (27, 28, 43) onto the front of the backrest and the tail brace (29, 30) onto its back."),
+ ("6", "Cure and stand", "Let seat, backrest and feet cure 24 h, join them, and set the chair on a flat floor."),
 ]
 # which real parts each step shows (board numbers = engraved numbers)
 STEP_PARTS = [(1, 43), (23, 24), (11, 13), (42,), (29, 43), ()]
@@ -431,7 +433,7 @@ for i, (n, t, b) in enumerate(steps):
     dr.ellipse((sx, yy, sx+92, yy+92), fill=_c)
     dr.text((sx+46, yy+46), n, font=F(46, True), fill=(255, 255, 255) if i < 4 else DEEP, anchor="mm")
     dr.text((sx+128, yy+2), t, font=F(46, True), fill=DEEP_TXT)
-    wrap((sx+128, yy+66), b, F(33), DEEP_SUB, maxw=1270, sp=9)
+    wrap((sx+128, yy+70), b, F(37), DEEP_SUB, maxw=1250, sp=10)
     parts = STEP_PARTS[i]
     tx = 5060 - len(parts) * 168 - (len(parts) - 1) * 34
     for j, pn in enumerate(parts):
@@ -540,15 +542,15 @@ dr.text((wx0 + 22, by + 28), "the chair  99.3 %", font=F(28, True), fill=(255, 2
 dr.text((_wx - 14, by + 28), "supports 0.7 %", font=F(28, True), fill=(255, 220, 205), anchor="rm")
 
 # ============ 3D PRINTING (right) ============
-section((5250, 2585), "3D PRINTING", col=DEEP_HEAD, bar=FOAM)
+section((5250, 2585), "3D PRINTING: THE ENTRY FILES (FOR 120 KG)", col=DEEP_HEAD, bar=FOAM)
 cols = [
- [("PARTS", "43: 42 pieces of ribbon (41 segments, one in two pieces) + the pin (print x4); limit 49"),
-  ("PART SIZE", "each fits 212 x 220 x 250 mm"),
+ [("PARTS", "43: 42 pieces of ribbon (41 segments, one in two pieces) and the pin (print ×4); limit 49"),
+  ("PART SIZE", "each fits 212 × 220 × 250 mm"),
   ("SUPPORTS", "under 1 % of the filament (121 g, PrusaSlicer), from the plate only; every hole is "
                "shaped for how its part lies, so none grows inside"),
   ("SETTINGS", "PETG, 0.20 mm layers, 0.4 mm nozzle, 5 perimeters, 35 % gyroid")],
  [("ADHESIVE", "two-part epoxy thickened with fumed silica, ~20 EUR for the chair"),
-  ("PIN", "dia 11 x 133 mm rod, 100 % infill, lying flat, x4"),
+  ("PIN", "Ø 11 × 133 mm rod, 100 % infill, lying flat, ×4"),
   ("WEIGHT, COST", "~16.5 kg, ~110 EUR (~90 filament + ~20 epoxy)"),
   ("BATCH TIME", "~460 h on one printer (PrusaSlicer)")],
 ]
@@ -608,7 +610,7 @@ for lab, sub, kg, col in comp:
     dr.text((ax0 + 36, yb + 42), sub, font=F(27), fill=SUB)
     w_ = int((bx1 - bx0) * kg / 16.4)
     dr.rounded_rectangle((bx0, yb, bx0 + w_, yb + 80), radius=16, fill=col)
-    dr.text((bx0 + w_ + 20, yb + 40), ("~" if kg < 10 else "") + f"{kg:.1f} kg",
+    dr.text((bx0 + w_ + 20, yb + 40), f"{kg:.1f} kg",
             font=F(40, True), fill=TEAL_DK, anchor="lm")
     yb += 140
 dr.text((bx0 + int((bx1 - bx0) * 8.9 / 16.4) + 210, yb - 100), "about half the plastic",
@@ -617,7 +619,8 @@ yb += 10
 yb = wrap((ax0 + 36, yb), "Anyone can print a lighter or a stronger MANTA, and only the plastic it needs. "
           "No two of its 42 ribbon pieces are alike; one command, manta_verify.py, re-runs every check.",
           F(31), INK, maxw=ax1 - ax0 - 72, sp=7)
-dr.text((ax0 + 36, ay1 - 84), "Full source, anonymised for review:", font=F(25), fill=SUB)
+dr.text((ax0 + 36, ay1 - 84), "Open source, free to print and change (CC BY-SA 4.0), anonymised for review:",
+        font=F(25), fill=SUB)
 dr.text((ax0 + 36, ay1 - 52), "anonymous.4open.science/r/manta-chair-23D4", font=F(28, True), fill=TEAL_DK)
 manta(6300, 4820, 200, 0.18, (36, 92, 120))
 manta(5560, 4850, 110, -0.3, (32, 82, 110))
