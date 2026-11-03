@@ -11,6 +11,19 @@ D = "_deliver"
 OUTF = "TEAMID_Board.jpg"
 INK, SUB, HAIR = (26, 28, 32), (108, 112, 120), (200, 203, 208)
 TEAL, TEAL_DK, TEAL_TINT = (10, 128, 138), (8, 74, 82), (223, 241, 241)
+# the sea, from the floor to the foam -- the chair's own colour story
+DEEP, FOAM = (12, 38, 74), (176, 228, 228)
+_STOPS = [(0.0, DEEP), (0.5, TEAL), (1.0, FOAM)]
+
+
+def depth(t):
+    """colour at depth t: 0 = sea floor (deep blue), 1 = foam"""
+    t = max(0.0, min(1.0, t))
+    for (t0, c0), (t1, c1) in zip(_STOPS, _STOPS[1:]):
+        if t <= t1:
+            u = (t - t0) / (t1 - t0)
+            return tuple(int(round(a + (b - a) * u)) for a, b in zip(c0, c1))
+    return _STOPS[-1][1]
 
 # part number (1-42, board key order) -> assembly-zone colour, same zones
 # and colours as the exploded view, so the key grid and the diagram agree
@@ -38,9 +51,22 @@ def F(sz, b=False):
     try: return ImageFont.truetype(p, sz)
     except Exception: return ImageFont.load_default()
 
-board = (Image.open("_board_base.png").convert("RGB").resize((W, H))
-         if os.path.exists("_board_base.png") else Image.new("RGB", (W, H), "white"))
+base = (Image.open("_board_base.png").convert("RGB").resize((W, H))
+        if os.path.exists("_board_base.png") else Image.new("RGB", (W, H), "white"))
+SURF = 2540                      # the waterline between the two halves of the board
+SKY0, SKY1 = (240, 250, 250), (206, 236, 238)        # air and the sunlit surface
+SEA0, SEA1 = (18, 66, 100), (7, 22, 44)              # down into the deep
+_bg = Image.new("RGB", (1, H))
+for _y in range(H):
+    if _y < SURF:
+        u = _y / SURF; a_, b_ = SKY0, SKY1
+    else:
+        u = (_y - SURF) / (H - SURF); a_, b_ = SEA0, SEA1
+    _bg.putpixel((0, _y), tuple(int(round(p + (q - p) * u)) for p, q in zip(a_, b_)))
+board = _bg.resize((W, H))
 dr = ImageDraw.Draw(board)
+# text colours for the deep half
+DEEP_TXT, DEEP_SUB, DEEP_HEAD = (236, 246, 248), (160, 204, 212), (176, 228, 228)
 
 # The template's key grid sits at a spot that collides with the hero render
 # in this layout — the brief explicitly allows relocating it ("You can
@@ -50,9 +76,14 @@ dr = ImageDraw.Draw(board)
 # old spot with white first so nothing of it peeks out from under the hero.
 GRID_SRC_BOX = (40, 1950, 780, 2750)     # grid + caption, as provided
 GRID_DX, GRID_DY = 6080, -250            # where it moves to
-grid_block = board.crop(GRID_SRC_BOX)
-dr.rectangle(GRID_SRC_BOX, fill=(255, 255, 255))
-board.paste(grid_block, (GRID_SRC_BOX[0] + GRID_DX, GRID_SRC_BOX[1] + GRID_DY))
+grid_block = base.crop(GRID_SRC_BOX)
+_gm = grid_block.convert("L").point(lambda v: 255 if v < 235 else 0)     # ink + grey frame
+_gbb = _gm.getbbox()                                                     # frame + caption box
+_frame = Image.new("L", grid_block.size, 0)
+ImageDraw.Draw(_frame).rounded_rectangle((_gbb[0], _gbb[1], _gbb[2], _gbb[1] + 600), radius=60, fill=255)
+from PIL import ImageChops
+_mask = ImageChops.lighter(_gm, _frame)
+board.paste(grid_block, (GRID_SRC_BOX[0] + GRID_DX, GRID_SRC_BOX[1] + GRID_DY), _mask)
 
 # the template's 49-slot grid stays whole (unused slots 44-49 = empty, allowed) —
 # each of the 43 used boxes gets a small picture of that actual part (like a
@@ -108,10 +139,10 @@ def img(name, box, contain=True):
     else:
         board.paste(im, (x0 + (bw-im.width)//2, y0 + (bh-im.height)//2))
 
-def section(xy, title, size=34):
+def section(xy, title, size=34, col=None, bar=None):
     x, y = xy
-    dr.rectangle((x, y + 6, x + 10, y + size - 4), fill=TEAL)
-    dr.text((x + 24, y), title, font=F(size, True), fill=TEAL_DK)
+    dr.rectangle((x, y + 6, x + 10, y + size - 4), fill=bar or TEAL)
+    dr.text((x + 24, y), title, font=F(size, True), fill=col or TEAL_DK)
 
 def wrap(xy, s, font, fill=INK, maxw=900, sp=9, anchor="la"):
     words, lines, cur = s.split(), [], ""
@@ -125,13 +156,68 @@ M = 150
 # ============ HEADER ============
 dr.text((M, 120), "MANTA", font=F(146, True), fill=INK)
 dr.rectangle((M + 4, 108, M + 14, 258), fill=TEAL)      # ocean-teal accent tick beside the name
-wrap((M + 40, 292), "A wave that rose from the sea floor and stayed: one ribbon, sliced crosswise so it prints at home and still holds an adult.",
-     F(44), SUB, maxw=4200)
-dr.line((M, 392, W-M, 392), fill=TEAL, width=5)
+wrap((M + 40, 292), "A wave that rose from the sea floor and stayed.", F(44), SUB, maxw=1250)
+
+
+def hband(x0, x1, y, h=8):
+    for x in range(int(x0), int(x1)):
+        dr.line((x, y, x, y + h), fill=depth((x - x0) / (x1 - x0)))
+
+
+def vband(x, y0, y1, w=6):
+    for y in range(int(y0), int(y1)):
+        dr.line((x, y, x + w, y), fill=depth(1 - (y - y0) / (y1 - y0)))
+
+
+# three pillars: why this chair, this form, this colour
+pillars = [
+    ("OXYGEN", "The ocean makes at least half of the oxygen we breathe. MANTA is a wave of it, "
+               "a story of a living planet: deep blue at the feet, foam at the crest."),
+    ("WASTE", "The ocean is full of our plastic. MANTA is plastic too, so it wastes almost none: "
+              "under 1 % of its filament goes to supports, where home prints often lose far more."),
+    ("LIFE", "The manta ray tells how healthy the sea is. Its fins hold the chair, and from the "
+             "side the seat draws its M: Manta, Mare."),
+]
+px0, pw = 1560, 1740
+for i, (key, txt) in enumerate(pillars):
+    x = px0 + i * (pw + 50)
+    col = depth(0.1 + 0.25 * i)
+    dr.rectangle((x, 128, x + 10, 368), fill=col)
+    dr.text((x + 34, 120), key, font=F(64, True), fill=col)
+    wrap((x + 36, 206), txt, F(31), INK, maxw=pw - 60, sp=8)
+hband(M, W - M, 392, 10)
 
 # ============ VISUALISATION (top) ============
 section((M, 432), "VISUALISATION")
 img("b_hero.png", (M, 470, 2980, 2520))
+# callouts ON the dark render (hero is fitted: scale 0.82, origin 581,470)
+_hx = lambda x, y: (581 + x * 0.82, 470 + y * 0.82)
+LBL, LTX = (186, 236, 236), (196, 212, 218)
+
+
+def callout(pt, at, key, txt, maxw=600, right=False):
+    px, py = _hx(*pt)
+    ax, ay = at
+    # the label block's box; the leader stops on its edge, nearest the chair,
+    # so it never runs through the words
+    words, lines, cur = txt.split(), [], ""
+    for w_ in words:
+        if dr.textlength((cur + " " + w_).strip(), font=F(26)) <= maxw: cur = (cur + " " + w_).strip()
+        else: lines.append(cur); cur = w_
+    lines.append(cur)
+    bw = max([dr.textlength(key, font=F(34, True))] + [dr.textlength(l_, font=F(26)) for l_ in lines])
+    x0b, y0b, x1b, y1b = ax - 14, ay - 12, ax + bw + 14, ay + 48 + 32 * len(lines) + 6
+    ex, ey = min(max(px, x0b), x1b), min(max(py, y0b), y1b)
+    dr.line((px, py, ex, ey), fill=LBL, width=3)
+    dr.ellipse((px - 11, py - 11, px + 11, py + 11), fill=LBL, outline=DEEP, width=3)
+    dr.text((ax, ay), key, font=F(34, True), fill=LBL)
+    wrap((ax, ay + 48), txt, F(26), LTX, maxw=maxw, sp=6)
+
+
+callout((1150, 610), (640, 640), "THE CREST", "a wave breaking forward, falling back through itself", 560)
+callout((960, 1050), (640, 1180), "COLOUR", "the depth of the sea: deep blue at the feet, foam at the crest", 560)
+callout((1440, 1370), (1980, 1080), "THE CURRENT", "flutes, bold at the floor, calm at the crest, smooth where you sit", 520)
+callout((540, 1975), (640, 2310), "FINS", "every foot forks into two splayed prongs: a manta on the seabed", 900)
 # the REAL chair: printed at home, glued, photographed -- next to the render
 def photo(path, box, focus=(0.5, 0.5)):
     x0, y0, x1, y1 = box
@@ -148,12 +234,32 @@ photo("photos/prototype_4.jpg", (3010, 486, 3860, 1610))                    # si
 photo("photos/prototype_5.jpg", (3870, 486, 4720, 1610))                    # study model in the palm
 photo("photos/prototype_3.jpg", (3010, 1620, 3860, 2440), focus=(0.35, 0.55))  # study model + chair
 photo("photos/prototype_7.jpg", (3870, 1620, 4720, 2440), focus=(0.5, 0.70))   # study model on the seat (whole chair)
+dr.rounded_rectangle((3030, 1530, 3600, 1592), radius=12, fill=DEEP)
+dr.text((3052, 1561), "the M, seen from the side", font=F(30, True), fill=FOAM, anchor="lm")
 dr.rounded_rectangle((3030, 506, 3720, 570), radius=12, fill=TEAL)
 dr.text((3052, 538), "BUILT  -  full-size prototype", font=F(34, True), fill=(255, 255, 255), anchor="lm")
 wrap((3010, 2448), "Printed at home (light variant, 75 % walls): ~9 kg, ~160 h, ~77 EUR with glue. Every part means "
      "something: forked feet = manta fins; the side profile draws an M (Manta, Mare); the crest = a breaking wave; "
      "colour = sea depth to foam; white seams = sea foam (epoxy + silica). Black: the first study model.",
      F(23), SUB, maxw=1710, sp=3)
+
+def bubbles(box, n, seed, rmax=34):
+    import random
+    rnd = random.Random(seed)
+    x0, y0, x1, y1 = box
+    for _ in range(n):
+        t = rnd.random() ** 1.6                       # more, smaller bubbles higher up
+        y = y1 - (y1 - y0) * (1 - t) if rnd.random() < 0.5 else y0 + (y1 - y0) * t
+        x = rnd.uniform(x0, x1)
+        r = rnd.uniform(6, rmax) * (0.45 + 0.55 * (y - y0) / max(1, y1 - y0))
+        dr.ellipse((x - r, y - r, x + r, y + r), outline=(120, 196, 204), width=max(2, int(r / 9)))
+        dr.ellipse((x - r * 0.45, y - r * 0.55, x - r * 0.15, y - r * 0.25), fill=(255, 255, 255))
+
+
+bubbles((2575, 600, 2990, 2480), 55, 1)          # between the render and the photos
+bubbles((165, 480, 560, 2500), 40, 2, 26)          # left of the render
+dr.text((2780, 1500), "O", font=F(46, True), fill=(80, 160, 170), anchor="mm")
+dr.text((2808, 1516), "2", font=F(26, True), fill=(80, 160, 170), anchor="mm")
 
 # ============ STRUCTURE & STABILITY (clear space, right of top view) ============
 section((4790, 470), "STRUCTURE & STABILITY", size=34)
@@ -198,18 +304,26 @@ bio = [
  ("Buttress root", "each foot forks into two splayed prongs — wide base, little material"),
 ]
 y = 562
-for k, v in bio:
+for j, (k, v) in enumerate(bio):
+    dr.rectangle((cx - 22, y + 4, cx - 14, y + 128), fill=depth(0.1 + 0.15 * j))
     dr.text((cx, y), k, font=F(27, True), fill=INK)
     wrap((cx, y+36), v, F(22), SUB, maxw=770, sp=5)
     y += 168
 
-dr.line((M, 2540, W-M, 2540), fill=TEAL, width=5)
+hband(M, W - M, 2540, 8)
 
 # ============ ASSEMBLY GUIDE ============  (template's 49-key grid: x~118..708 y~2008..2570)
-section((820, 2585), "ASSEMBLY GUIDE")
-img("b_exploded.png", (150, 2690, 3050, 4760))
-wrap((170, 4770), "Exploded — 41 segments, no two alike. Cuts and pegs are computed: cuts stay clear of the peak-load knee and lumbar, pegs follow the section, every joint verified by virtual assembly.",
-     F(28), SUB, maxw=2800)
+section((820, 2585), "ASSEMBLY GUIDE", col=DEEP_HEAD, bar=FOAM)
+# the exploded view as a rounded card on the deep half
+_ex = Image.open(f"{D}/b_exploded.png").convert("RGB")
+_s = min(2900 / _ex.width, 2070 / _ex.height)
+_ex = _ex.resize((int(_ex.width * _s), int(_ex.height * _s)))
+_ox, _oy = 150 + (2900 - _ex.width) // 2, 2690 + (2070 - _ex.height) // 2
+_rm = Image.new("L", _ex.size, 0)
+ImageDraw.Draw(_rm).rounded_rectangle((0, 0, _ex.width - 1, _ex.height - 1), radius=48, fill=255)
+board.paste(_ex, (_ox, _oy), _rm)
+wrap((170, 4770), "Exploded — 43 parts (42 pieces of ribbon + the pin), no two alike. Cuts and pegs are computed: cuts stay clear of the peak-load knee and lumbar, pegs follow the section, every joint verified by virtual assembly.",
+     F(28), DEEP_SUB, maxw=2800)
 
 steps = [
  ("1", "Lay out by zone", "Every part has its number (1-43) ENGRAVED on a glue face. In reading order they form six zones: fore-foot fork, front leg, seat, lumbar, backrest, tail-foot fork."),
@@ -222,17 +336,48 @@ steps = [
 sx = 3230
 for i, (n, t, b) in enumerate(steps):
     yy = 2700 + i*300
-    dr.ellipse((sx, yy, sx+92, yy+92), fill=TEAL)
-    dr.text((sx+46, yy+46), n, font=F(46, True), fill=(255, 255, 255), anchor="mm")
-    dr.text((sx+128, yy+2), t, font=F(46, True), fill=INK)
-    wrap((sx+128, yy+66), b, F(33), SUB, maxw=1680, sp=9)
+    _c = depth(0.1 + 0.16 * i)
+    dr.ellipse((sx, yy, sx+92, yy+92), fill=_c)
+    dr.text((sx+46, yy+46), n, font=F(46, True), fill=(255, 255, 255) if i < 4 else DEEP, anchor="mm")
+    dr.text((sx+128, yy+2), t, font=F(46, True), fill=DEEP_TXT)
+    wrap((sx+128, yy+66), b, F(33), DEEP_SUB, maxw=1680, sp=9)
 
-dr.line((5170, 2560, 5170, 4770), fill=TEAL, width=4)
+vband(5168, 2560, 4770, 6)
+
+# the sea floor, with the plastic we leave there
+FLOOR = (14, 34, 58)
+dr.polygon([(3200, 4905)] + [(x, 4880 + 14 * math.sin(x / 90.0)) for x in range(3200, 5120, 20)]
+           + [(5120, 4905), (5120, 4962), (3200, 4962)], fill=FLOOR)
+DEBRIS = (64, 98, 124)
+def bottle(x, y, a):
+    pts = [(-14, -60), (14, -60), (14, -40), (26, -26), (26, 30), (-26, 30), (-26, -26), (-14, -40)]
+    c, s_ = math.cos(a), math.sin(a)
+    dr.polygon([(x + px * c - py * s_, y + px * s_ + py * c) for px, py in pts], fill=DEBRIS)
+def bag(x, y):
+    dr.polygon([(x - 50, y), (x - 30, y - 46), (x - 8, y - 30), (x + 6, y - 58), (x + 30, y - 26),
+                (x + 54, y - 8), (x + 40, y + 6)], fill=DEBRIS)
+def cap(x, y):
+    dr.ellipse((x - 14, y - 14, x + 14, y + 14), fill=DEBRIS)
+bottle(3330, 4868, 1.25); bag(3560, 4880); cap(3700, 4876); bottle(4950, 4860, -1.1)
+cap(4790, 4882); bag(4400, 4884); cap(4060, 4870); bottle(3880, 4876, 1.45)
+
+# what MANTA throws away: its supports, against the chair itself
+wx0, wy0, wx1 = 3230, 4470, 5060
+dr.text((wx0, wy0), "WASTE", font=F(46, True), fill=DEEP_HEAD)
+wrap((wx0 + 190, wy0 + 8), "The ocean is full of our plastic, so this plastic chair wastes almost none: "
+     "supports are 0.7 % of its filament (121 g of 16.4 kg, PrusaSlicer) and none is trapped in a hole.",
+     F(28), DEEP_SUB, maxw=wx1 - wx0 - 190, sp=6)
+by = wy0 + 120
+dr.rounded_rectangle((wx0, by, wx1, by + 56), radius=12, fill=(36, 132, 146))
+_wx = wx1 - max(8, int((wx1 - wx0) * 0.007))
+dr.rounded_rectangle((_wx, by, wx1, by + 56), radius=6, fill=(238, 120, 90))
+dr.text((wx0 + 22, by + 28), "the chair  99.3 %", font=F(28, True), fill=(255, 255, 255), anchor="lm")
+dr.text((_wx - 14, by + 28), "supports 0.7 %", font=F(28, True), fill=(255, 220, 205), anchor="rm")
 
 # ============ 3D PRINTING (right) ============
-section((5250, 2585), "3D PRINTING")
+section((5250, 2585), "3D PRINTING", col=DEEP_HEAD, bar=FOAM)
 rows = [
- ("PARTS", "41 segments (one prints in two pieces) + 1 pin type (x4)  -  43 of 49"),
+ ("PARTS", "43: 42 pieces of ribbon (41 segments, one in two pieces) + the pin (print x4)  -  limit 49"),
  ("PART SIZE", "each <= 212 x 220 x 250 mm"),
  ("SUPPORTS", "almost none: under 1 % of the filament (121 g, PrusaSlicer), from the build plate only; every hole is shaped for how its part lies, so none grows inside"),
  ("MATERIAL", "PETG"),
@@ -246,8 +391,8 @@ rows = [
 ]
 y = 2680
 for k, v in rows:
-    dr.text((5250, y), k, font=F(26, True), fill=SUB)
-    wrap((5250, y+38), v, F(31), INK, maxw=1560, sp=5)
+    dr.text((5250, y), k, font=F(26, True), fill=DEEP_SUB)
+    wrap((5250, y+38), v, F(31), DEEP_TXT, maxw=1560, sp=5)
     y += 176
 
 # ---- OPEN DESIGN callout box — our strongest reproducibility argument, ----
@@ -259,7 +404,7 @@ except AttributeError:
     dr.rectangle((box_x0, box_y0, box_x1, 4900), fill=TEAL_TINT)
 section((box_x0 + 24, box_y0 + 22), "OPEN DESIGN", size=28)
 wrap((box_x0 + 24, box_y0 + 70), "Nothing in nature repeats itself, so no two parts of this chair do "
-     "either: every one of the 41 segments is geometrically unique — script-verified. One "
+     "either: all 42 pieces of the ribbon are geometrically unique — script-verified. One "
      "parametric script: change the width, thickness or infill tables and it regenerates a leaner "
      "variant with the same joints, automatically re-checked so it can't export something that "
      "fails. One command (manta_verify.py) re-runs every check: strength, virtual assembly, "

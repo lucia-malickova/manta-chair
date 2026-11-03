@@ -148,8 +148,8 @@ def draw_band(c, doc):
     c.drawString(25 * mm, ph - 18.5 * mm, "MANTA")
     c.setFont("Helvetica-Oblique", 8.3)
     c.setFillColor(colors.HexColor("#a9d3d3"))
-    sub1 = "A wave that rose from the sea floor and stayed."
-    sub2 = "One ribbon, cut like a baguette so it prints at home and still holds an adult."
+    sub1 = "The ocean makes the oxygen we breathe, and it is full of our plastic."
+    sub2 = "MANTA is a wave of it: one ribbon, printed with under 1 % waste."
     c.drawString(25 * mm, ph - 26 * mm, sub1)
     c.drawString(25 * mm, ph - 31.5 * mm, sub2)
     c.restoreState()
