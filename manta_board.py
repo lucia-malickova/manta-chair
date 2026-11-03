@@ -173,10 +173,10 @@ def vband(x, y0, y1, w=6):
 pillars = [
     ("OXYGEN", "The ocean makes at least half of the oxygen we breathe. MANTA is a wave of it, "
                "a story of a living planet: deep blue at the feet, foam at the crest."),
-    ("WASTE", "The ocean is full of our plastic. MANTA is plastic too, so it wastes almost none: "
-              "under 1 % of its filament goes to supports, where home prints often lose far more."),
-    ("LIFE", "The manta ray tells how healthy the sea is. Its fins hold the chair, and from the "
-             "side the seat draws its M: Manta, Mare."),
+    ("WASTE", "We fill that ocean with plastic; microplastics are found even in human blood. "
+              "MANTA is printed with sense: under 1 % support waste, ideally in recycled PETG."),
+    ("LIFE", "The manta ray tells how healthy the sea is. Its fins hold the chair, from the side "
+             "the seat draws its M (Manta, Mare), and biomimicry puts material only where the load is."),
 ]
 px0, pw = 1560, 1740
 for i, (key, txt) in enumerate(pillars):
@@ -311,6 +311,20 @@ for j, (k, v) in enumerate(bio):
     y += 168
 
 hband(M, W - M, 2540, 8)
+# what we leave in the sea floats on its surface
+PLAS, PLAS2 = (126, 150, 166), (196, 140, 112)
+def bottle_h(x, y, a=0.0, col=PLAS):
+    pts = [(-62, -16), (30, -16), (44, -9), (62, -9), (62, 9), (44, 9), (30, 16), (-62, 16)]
+    c, s_ = math.cos(a), math.sin(a)
+    dr.polygon([(x + px * c - py * s_, y + px * s_ + py * c) for px, py in pts], fill=col)
+def bag_f(x, y, col=PLAS):
+    dr.polygon([(x - 46, y + 6), (x - 30, y - 22), (x - 6, y - 10), (x + 12, y - 30), (x + 34, y - 8),
+                (x + 52, y + 4), (x + 20, y + 14), (x - 20, y + 16)], fill=col)
+def cap_f(x, y, col=PLAS2):
+    dr.ellipse((x - 13, y - 9, x + 13, y + 9), fill=col)
+bottle_h(2660, 2536, 0.12); cap_f(2780, 2540); bag_f(2900, 2534)
+bag_f(4900, 2532); bottle_h(5120, 2540, -0.08); cap_f(5300, 2538); cap_f(5520, 2542, PLAS)
+bottle_h(5800, 2534, 0.2, PLAS2); bag_f(6460, 2534); cap_f(6650, 2540)
 
 # ============ ASSEMBLY GUIDE ============  (template's 49-key grid: x~118..708 y~2008..2570)
 section((820, 2585), "ASSEMBLY GUIDE", col=DEEP_HEAD, bar=FOAM)
@@ -344,28 +358,37 @@ for i, (n, t, b) in enumerate(steps):
 
 vband(5168, 2560, 4770, 6)
 
-# the sea floor, with the plastic we leave there
-FLOOR = (14, 34, 58)
-dr.polygon([(3200, 4905)] + [(x, 4880 + 14 * math.sin(x / 90.0)) for x in range(3200, 5120, 20)]
-           + [(5120, 4905), (5120, 4962), (3200, 4962)], fill=FLOOR)
-DEBRIS = (64, 98, 124)
-def bottle(x, y, a):
-    pts = [(-14, -60), (14, -60), (14, -40), (26, -26), (26, 30), (-26, 30), (-26, -26), (-14, -40)]
-    c, s_ = math.cos(a), math.sin(a)
-    dr.polygon([(x + px * c - py * s_, y + px * s_ + py * c) for px, py in pts], fill=DEBRIS)
-def bag(x, y):
-    dr.polygon([(x - 50, y), (x - 30, y - 46), (x - 8, y - 30), (x + 6, y - 58), (x + 30, y - 26),
-                (x + 54, y - 8), (x + 40, y + 6)], fill=DEBRIS)
-def cap(x, y):
-    dr.ellipse((x - 14, y - 14, x + 14, y + 14), fill=DEBRIS)
-bottle(3330, 4868, 1.25); bag(3560, 4880); cap(3700, 4876); bottle(4950, 4860, -1.1)
-cap(4790, 4882); bag(4400, 4884); cap(4060, 4870); bottle(3880, 4876, 1.45)
+# down in the deep there is life: mantas swimming
+def manta(cx, cy, w, ang=0.0, col=(44, 104, 132)):
+    pts = []
+    for k in range(0, 21):                      # right wing: leading edge, tip, trailing edge
+        t = k / 20.0
+        pts.append((0.08 * w + 0.42 * w * t, -0.24 * w + 0.24 * w * t ** 0.6))
+    for k in range(0, 21):
+        t = k / 20.0
+        pts.append((0.5 * w - 0.38 * w * t, 0.02 * w + 0.18 * w * t ** 1.4))
+    body = ([(0.12 * w, 0.2 * w), (0.06 * w, 0.24 * w)] +
+            [(-x, y) for x, y in [(0.06 * w, 0.24 * w), (0.12 * w, 0.2 * w)]] +
+            [(-x, y) for x, y in reversed(pts)] +
+            [(-0.06 * w, -0.3 * w), (-0.03 * w, -0.24 * w), (0.03 * w, -0.24 * w), (0.06 * w, -0.3 * w)])
+    poly = pts + body
+    c, s_ = math.cos(ang), math.sin(ang)
+    dr.polygon([(cx + x * c - y * s_, cy + x * s_ + y * c) for x, y in poly], fill=col)
+    tx, ty = 0.0, 0.62 * w                       # the long thin tail
+    dr.line((cx - 0.0 * c - 0.24 * w * s_, cy + 0.24 * w * c, cx + tx * c - ty * s_, cy + tx * s_ + ty * c),
+            fill=col, width=max(3, int(w / 90)))
+
+
+manta(3640, 4790, 260, -0.15)
+manta(4330, 4760, 190, 0.22, (36, 92, 120))
+manta(4880, 4850, 120, -0.35, (32, 82, 110))
+manta(250, 2630, 130, 0.3, (40, 98, 126))
 
 # what MANTA throws away: its supports, against the chair itself
 wx0, wy0, wx1 = 3230, 4470, 5060
 dr.text((wx0, wy0), "WASTE", font=F(46, True), fill=DEEP_HEAD)
-wrap((wx0 + 190, wy0 + 8), "The ocean is full of our plastic, so this plastic chair wastes almost none: "
-     "supports are 0.7 % of its filament (121 g of 16.4 kg, PrusaSlicer) and none is trapped in a hole.",
+wrap((wx0 + 190, wy0 + 8), "Plastic, printed with sense: supports are 0.7 % of the filament (121 g of "
+     "16.4 kg, PrusaSlicer), none trapped in a hole, and we recommend recycled PETG.",
      F(28), DEEP_SUB, maxw=wx1 - wx0 - 190, sp=6)
 by = wy0 + 120
 dr.rounded_rectangle((wx0, by, wx1, by + 56), radius=12, fill=(36, 132, 146))
