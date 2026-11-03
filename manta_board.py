@@ -215,7 +215,7 @@ steps = [
  ("2", "Left + right halves FIRST", "Wide segments come in L+R halves. Glue each pair along the centre-line on its transverse peg (up to dia 20) before anything else; the seam is the keel."),
  ("3", "Crosswise joints", "Then join the segments: seat the printed conical peg (dia 27 at the face) in its socket, two-part epoxy over the whole face. No screws."),
  ("4", "Lumbar pins", "Only the two joints beside the lumbar: slide a dia 11 pin in from each side face until it stops (2 per joint) before the epoxy sets."),
- ("5", "The crossing, cure", "Where the ribbon returns through the backrest it is trimmed to the backrest's shape: epoxy the loop's end onto its front and the tail brace onto its back (computed saddle, 56 cm2). Build seat, backrest and fork-feet separately, cure 24 h, then join at the lumbar and knees."),
+ ("5", "The crossing, cure", "Where the ribbon returns through the backrest it is trimmed to the backrest's shape: epoxy the loop's end (27, 28 + small piece 43, split from 29) onto its front and the tail brace (29, 30) onto its back (saddle, 56 cm2). Build seat, backrest and fork-feet separately, cure 24 h, then join at the lumbar and knees."),
  ("6", "Stand & load", "Set on a flat floor, weight the seat, leave 24 h. Tipping 0.56 sideways; safe static load ~250 kg."),
 ]
 sx = 3230
