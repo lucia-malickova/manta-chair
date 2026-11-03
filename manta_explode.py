@@ -27,8 +27,10 @@ def actor(pd, col=(0.60, 0.64, 0.74)):
     m = vtk.vtkPolyDataMapper(); m.SetInputData(nf.GetOutput())
     a = vtk.vtkActor(); a.SetMapper(m)
     p = a.GetProperty()
-    try: p.SetInterpolationToPBR(); p.SetMetallic(0.15); p.SetRoughness(0.5)
-    except Exception: pass
+    # plain Phong, not PBR: PBR shifted the hues (lime read as khaki), so the
+    # parts no longer matched the legend and the key grid
+    p.SetInterpolationToPhong(); p.SetAmbient(0.33); p.SetDiffuse(0.72)
+    p.SetSpecular(0.12); p.SetSpecularPower(25)
     p.SetColor(*col); p.SetEdgeVisibility(0)          # no mesh lines: the parts read as smooth objects
     return a
 

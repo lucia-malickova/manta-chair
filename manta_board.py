@@ -422,8 +422,10 @@ def thumb_card(x, y, pn, sz=168):
         t = Image.open(p).convert("RGB")
         t.thumbnail((sz - 26, sz - 26))
         board.paste(t, (x + (sz - t.width) // 2, y + (sz - t.height) // 2))
-    dr.ellipse((x - 14, y - 14, x + 40, y + 40), fill=depth(0.75), outline=DEEP, width=3)
-    dr.text((x + 13, y + 13), str(pn), font=F(24, True), fill=DEEP, anchor="mm")
+    zc = ZONE_RGB[_PART_ZONE[pn]] if pn in _PART_ZONE else (255, 255, 255)   # same colour as legend + key grid
+    dark = 0.299 * zc[0] + 0.587 * zc[1] + 0.114 * zc[2] < 140
+    dr.ellipse((x - 14, y - 14, x + 40, y + 40), fill=zc, outline=(255, 255, 255), width=3)
+    dr.text((x + 13, y + 13), str(pn), font=F(24, True), fill=(255, 255, 255) if dark else DEEP, anchor="mm")
 
 
 sx = 3230
