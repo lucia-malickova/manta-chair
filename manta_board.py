@@ -236,18 +236,6 @@ photo("photos/prototype_4.jpg", (3010, 486, 3860, 1610))                    # si
 photo("photos/prototype_5.jpg", (3870, 486, 4720, 1610))                    # study model in the palm
 photo("photos/prototype_3.jpg", (3010, 1620, 3860, 2440), focus=(0.35, 0.55))  # study model + chair
 photo("photos/prototype_7.jpg", (3870, 1620, 4720, 2440), focus=(0.5, 0.70))   # study model on the seat (whole chair)
-# the M drawn by legs, seat and backrest: front leg up, seat, backrest up to the crest, rear leg down
-_M = [(3158, 1326), (3160, 1016), (3270, 1030), (3384, 1022), (3415, 880), (3392, 704), (3440, 905), (3650, 1290)]
-_ov = Image.new("RGBA", board.size, (0, 0, 0, 0))
-_od = ImageDraw.Draw(_ov)
-_od.line(_M, fill=(255, 255, 255, 90), width=34, joint="curve")
-_od.line(_M, fill=(255, 255, 255, 235), width=9, joint="curve")
-for _p in (_M[0], _M[1], _M[3], _M[5], _M[-1]):
-    _od.ellipse((_p[0] - 15, _p[1] - 15, _p[0] + 15, _p[1] + 15), fill=(255, 255, 255, 245))
-board.paste(_ov.convert("RGB"), (0, 0), _ov)
-dr = ImageDraw.Draw(board)
-dr.text((3745, 830), "M", font=F(150, True), fill=(255, 255, 255), anchor="mm", stroke_width=3, stroke_fill=DEEP)
-dr.text((3745, 922), "Manta, Mare", font=F(32, True), fill=(255, 255, 255), anchor="mm", stroke_width=3, stroke_fill=DEEP)
 dr.rounded_rectangle((3030, 1530, 3600, 1592), radius=12, fill=DEEP)
 dr.text((3052, 1561), "the M, seen from the side", font=F(30, True), fill=FOAM, anchor="lm")
 dr.rounded_rectangle((3030, 506, 3720, 570), radius=12, fill=TEAL)
@@ -269,8 +257,10 @@ def bubbles(box, n, seed, rmax=34):
         dr.ellipse((x - r * 0.45, y - r * 0.55, x - r * 0.15, y - r * 0.25), fill=(255, 255, 255))
 
 
-bubbles((2575, 600, 2990, 2480), 55, 1)          # between the render and the photos
-bubbles((165, 480, 560, 2500), 40, 2, 26)          # left of the render
+bubbles((2575, 520, 2990, 2480), 85, 1)          # between the render and the photos
+bubbles((4800, 2230, 6060, 2500), 50, 3, 30)       # under the stability column
+dr.text((5960, 2290), "O", font=F(46, True), fill=(80, 160, 170), anchor="mm")
+dr.text((5988, 2306), "2", font=F(26, True), fill=(80, 160, 170), anchor="mm")
 dr.text((2780, 1500), "O", font=F(46, True), fill=(80, 160, 170), anchor="mm")
 dr.text((2808, 1516), "2", font=F(26, True), fill=(80, 160, 170), anchor="mm")
 
@@ -325,19 +315,78 @@ for j, (k, v) in enumerate(bio):
 
 hband(M, W - M, 2540, 8)
 # what we leave in the sea floats on its surface
-PLAS, PLAS2 = (126, 150, 166), (196, 140, 112)
-def bottle_h(x, y, a=0.0, col=PLAS):
-    pts = [(-62, -16), (30, -16), (44, -9), (62, -9), (62, 9), (44, 9), (30, 16), (-62, 16)]
+_pov = Image.new("RGBA", board.size, (0, 0, 0, 0))
+_pd = ImageDraw.Draw(_pov)
+
+
+def _tr(x, y, pts, a=0.0, k=1.0):
     c, s_ = math.cos(a), math.sin(a)
-    dr.polygon([(x + px * c - py * s_, y + px * s_ + py * c) for px, py in pts], fill=col)
-def bag_f(x, y, col=PLAS):
-    dr.polygon([(x - 46, y + 6), (x - 30, y - 22), (x - 6, y - 10), (x + 12, y - 30), (x + 34, y - 8),
-                (x + 52, y + 4), (x + 20, y + 14), (x - 20, y + 16)], fill=col)
-def cap_f(x, y, col=PLAS2):
-    dr.ellipse((x - 13, y - 9, x + 13, y + 9), fill=col)
-bottle_h(2660, 2536, 0.12); cap_f(2780, 2540); bag_f(2900, 2534)
-bag_f(4900, 2532); bottle_h(5120, 2540, -0.08); cap_f(5300, 2538); cap_f(5520, 2542, PLAS)
-bottle_h(5800, 2534, 0.2, PLAS2); bag_f(6460, 2534); cap_f(6650, 2540)
+    return [(x + k * (px * c - py * s_), y + k * (px * s_ + py * c)) for px, py in pts]
+
+
+def bottle_h(x, y, a=0.0, col=(150, 196, 214, 235), capc=(214, 64, 52, 255), k=1.5):
+    _pd.polygon(_tr(x, y, [(-62, -16), (30, -16), (44, -9), (62, -9), (62, 9), (44, 9), (30, 16), (-62, 16)], a, k), fill=col)
+    _pd.polygon(_tr(x, y, [(-36, -16), (4, -16), (4, 16), (-36, 16)], a, k), fill=(236, 240, 242, 240))
+    _pd.polygon(_tr(x, y, [(62, -11), (74, -11), (74, 11), (62, 11)], a, k), fill=capc)
+
+
+def bag_f(x, y, k=1.5):
+    _pd.polygon(_tr(x, y, [(-46, 6), (-30, -22), (-6, -10), (12, -30), (34, -8), (52, 4), (20, 14), (-20, 16)], 0, k),
+                fill=(232, 238, 240, 175))
+    _pd.arc((x - 30 * k, y - 46 * k, x - 4 * k, y - 8 * k), 180, 360, fill=(232, 238, 240, 200), width=6)
+
+
+def rings(x, y, k=1.4):
+    for i in range(3):
+        for j in range(2):
+            cx_, cy_ = x + (i - 1) * 30 * k, y + (j - 0.5) * 22 * k
+            _pd.ellipse((cx_ - 15 * k, cy_ - 10 * k, cx_ + 15 * k, cy_ + 10 * k), outline=(238, 236, 214, 240), width=6)
+
+
+def straw(x, y, a=0.0, k=1.5):
+    _pd.line(_tr(x, y, [(-60, 0), (30, 0), (52, -18)], a, k), fill=(236, 92, 124, 245), width=10, joint="curve")
+
+
+def cup(x, y, a=0.0, k=1.5):
+    _pd.polygon(_tr(x, y, [(-30, -22), (30, -16), (30, 16), (-30, 22)], a, k), fill=(246, 246, 240, 240))
+    _pd.polygon(_tr(x, y, [(30, -20), (38, -20), (38, 20), (30, 20)], a, k), fill=(60, 150, 200, 240))
+
+
+def cap_f(x, y, col=(196, 140, 112, 255)):
+    _pd.ellipse((x - 16, y - 11, x + 16, y + 11), fill=col)
+
+
+def net(x, y, w=150, h=44):
+    for t in range(-w // 2, w // 2 + 1, 18):
+        _pd.line((x + t - 14, y - h // 2, x + t + 14, y + h // 2), fill=(96, 160, 132, 210), width=4)
+        _pd.line((x + t + 14, y - h // 2, x + t - 14, y + h // 2), fill=(96, 160, 132, 210), width=4)
+
+
+WL = 2536                                   # just above the waterline: it floats
+bottle_h(300, WL, 0.1); cap_f(430, WL + 4); rings(560, WL); bag_f(690, WL)
+straw(1480, WL, 0.05); bottle_h(1680, WL, -0.12, capc=(40, 120, 200, 255)); cup(1880, WL, 0.3)
+net(2120, WL + 2); cap_f(2300, WL + 4, (60, 150, 200, 255)); bottle_h(2500, WL, 0.15)
+cap_f(2640, WL + 4); bag_f(2800, WL); rings(2990, WL)
+bottle_h(4800, WL, -0.08); cup(4990, WL, -0.25); cap_f(5130, WL + 4, (214, 64, 52, 255))
+net(5850, WL + 2); bottle_h(6060, WL, 0.18, capc=(40, 120, 200, 255)); straw(6280, WL, 0.12)
+bag_f(6460, WL); cap_f(6610, WL + 4); rings(6750, WL)
+# microplastics: the same plastic, broken small, sinking into the water
+import random as _r
+_rg = _r.Random(11)
+_cols = [(214, 120, 96), (150, 196, 214), (236, 236, 220), (236, 92, 124), (96, 160, 132)]
+_keep_out = [(800, 2570, 1400, 2640), (5230, 2570, 5720, 2640), (3220, 2565, 5080, 2665), (150, 2680, 3060, 2700)]
+for _ in range(520):
+    px_ = _rg.uniform(170, 6850)
+    py_ = 2548 + 140 * _rg.random() ** 1.8
+    if any(a <= px_ <= c and b <= py_ <= d for a, b, c, d in _keep_out):
+        continue
+    r_ = _rg.uniform(2, 6) * (1 - (py_ - 2548) / 200)
+    c_ = _rg.choice(_cols)
+    _pd.ellipse((px_ - r_, py_ - r_, px_ + r_, py_ + r_), fill=c_ + (int(230 - (py_ - 2548)),))
+board.paste(_pov.convert("RGB"), (0, 0), _pov)
+dr = ImageDraw.Draw(board)
+wrap((3230, 2578), "About 11 million tonnes of plastic reach the ocean every year. It floats here, at the "
+     "surface, and breaks into microplastics.", F(28, True), (238, 150, 120), maxw=1830, sp=6)
 
 # ============ ASSEMBLY GUIDE ============  (template's 49-key grid: x~118..708 y~2008..2570)
 section((820, 2585), "ASSEMBLY GUIDE", col=DEEP_HEAD, bar=FOAM)
@@ -418,6 +467,64 @@ manta(3640, 4790, 260, -0.15)
 manta(4330, 4760, 190, 0.22, (36, 92, 120))
 manta(4880, 4850, 120, -0.35, (32, 82, 110))
 manta(250, 2630, 130, 0.3, (40, 98, 126))
+
+ix0, ix1 = 172, 556
+icx, iw = (ix0 + ix1) // 2, ix1 - ix0
+dr.text((ix0, 520), "THE IDEA", font=F(32, True), fill=TEAL_DK)
+
+
+def idea_caption(y, title, sub, t):
+    dr.text((icx, y), title, font=F(34, True), fill=depth(t), anchor="mt")
+    return wrap((icx, y + 46), sub, F(26), SUB, maxw=iw, sp=5, anchor="ma")
+
+
+def idea_arrow(y):
+    dr.line((icx - 20, y, icx, y + 22, icx + 20, y), fill=TEAL, width=6, joint="curve")
+    return y + 22
+
+
+# 1. a wave: a swell that rises and curls over
+y0, h = 590, 240
+pts = []
+for k in range(61):
+    t = k / 60
+    pts.append((ix0 + 0.06 * iw + 0.64 * iw * t, y0 + 0.92 * h - 0.62 * h * math.sin(t * math.pi / 2) ** 2))
+R = 0.24 * h
+cx_, cy_ = pts[-1][0], pts[-1][1] + R
+for k in range(1, 61):
+    a = -math.pi / 2 + k / 60 * 1.45 * math.pi
+    r = R * (1 - 0.55 * k / 60)
+    pts.append((cx_ + r * math.cos(a), cy_ + r * math.sin(a)))
+for k in range(len(pts) - 1):
+    _c = depth(0.05 + 0.7 * k / len(pts))
+    dr.line((pts[k], pts[k + 1]), fill=_c, width=18)
+    dr.ellipse((pts[k][0] - 9, pts[k][1] - 9, pts[k][0] + 9, pts[k][1] + 9), fill=_c)
+for k in range(7):
+    a = -math.pi / 2 + k * 0.32
+    bx, by_ = cx_ + (R + 28) * math.cos(a) + 10, cy_ + (R + 28) * math.sin(a)
+    dr.ellipse((bx - 7, by_ - 7, bx + 7, by_ + 7), outline=(120, 196, 204), width=3)
+y = idea_caption(y0 + h + 14, "A WAVE", "from the ocean that makes half of our oxygen", 0.15)
+y = idea_arrow(y + 30)
+
+# 2. a manta: its fins become the feet
+manta(icx, y + 130, 340, 0.0, depth(0.3))
+y = idea_caption(y + 360, "A MANTA", "its fins become the feet", 0.3)
+y = idea_arrow(y + 30)
+
+# 3. an M: Manta, Mare
+dr.text((icx, y + 120), "M", font=F(230, True), fill=depth(0.5), anchor="mm")
+y = idea_caption(y + 250, "AN M", "Manta, Mare: drawn by the side profile", 0.45)
+y = idea_arrow(y + 30)
+
+# 4. the chair, seen from the side
+_sd = Image.open(f"{D}/b_side.png").convert("RGB").crop((180, 480, 1520, 2250))
+_sh = min(2380 - (y + 30) - 90, int(iw * _sd.height / _sd.width))
+_sw = int(_sh * _sd.width / _sd.height)
+_sd = _sd.resize((_sw, _sh))
+_sm = Image.new("L", _sd.size, 0)
+ImageDraw.Draw(_sm).rounded_rectangle((0, 0, _sw - 1, _sh - 1), radius=26, fill=255)
+board.paste(_sd, (icx - _sw // 2, y + 30), _sm)
+idea_caption(y + 30 + _sh + 14, "A CHAIR", "one ribbon in 43 printed parts", 0.6)
 
 # what MANTA throws away: its supports, against the chair itself
 wx0, wy0, wx1 = 3230, 4470, 5060

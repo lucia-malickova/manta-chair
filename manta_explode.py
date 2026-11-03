@@ -37,7 +37,8 @@ def scene(actors, fname, size, elev, azim, parallel=True, labels=(), legend=None
     # label behind it. Projecting to 2D and drawing on top guarantees every
     # number stays visible regardless of what else is nearby in 3D.
     ren = vtk.vtkRenderer(); ren.GradientBackgroundOn()
-    ren.SetBackground(1, 1, 1); ren.SetBackground2(0.95, 0.96, 0.98)
+    # sunlit water, not a white sheet: it sits in the board's ocean (bottom -> top)
+    ren.SetBackground(0.47, 0.68, 0.75); ren.SetBackground2(0.80, 0.91, 0.93)
     ren.SetUseDepthPeeling(1); ren.SetMaximumNumberOfPeels(10)
     for a in actors: ren.AddActor(a)
     for vec, inten in [((-0.5, -0.8, 0.6), 1.2), ((0.7, -0.2, 0.3), 0.6), ((0.2, 0.9, 0.4), 0.7)]:
@@ -93,15 +94,15 @@ def scene(actors, fname, size, elev, azim, parallel=True, labels=(), legend=None
         img = Image.open(f"{OUT}/{fname}").convert("RGB")
         dr = ImageDraw.Draw(img)
         try:
-            lfont = ImageFont.truetype(r"C:\Windows\Fonts\arial.ttf", 26)
+            lfont = ImageFont.truetype(r"C:\Windows\Fonts\arial.ttf", 42)
         except Exception:
             lfont = ImageFont.load_default()
-        lx, ly = 24, size[1] - 24 - 26 * len(legend)
+        lx, ly = 36, size[1] - 36 - 52 * len(legend)
         for name, col in legend:
             rgb = tuple(int(round(c * 255)) for c in col)
-            dr.rectangle((lx, ly, lx + 22, ly + 22), fill=rgb, outline=(90, 92, 96))
-            dr.text((lx + 32, ly + 1), name, font=lfont, fill=(40, 40, 40))
-            ly += 26
+            dr.rectangle((lx, ly, lx + 36, ly + 36), fill=rgb, outline=(40, 50, 60))
+            dr.text((lx + 52, ly - 2), name, font=lfont, fill=(14, 40, 60))
+            ly += 52
         img.save(f"{OUT}/{fname}")
     print(fname, size)
 
