@@ -117,7 +117,7 @@ for raw in src.splitlines():
             story.append(Spacer(1, 4)); story.append(stat_strip()); story.append(Spacer(1, 5))
             pending_stats = False
         story.append(section_header(line[3:]))
-        if line[3:].strip().lower() in ("stability and load", "engineering that checks itself", "the algorithm — print only the chair you need"):
+        if line[3:].strip().lower() in ("stability and load", "engineering that checks itself", "the algorithm — print only the chair you need", "strength and stability"):
             pending_stats = True
         last_block = None
         continue
@@ -150,8 +150,8 @@ def draw_band(c, doc):
     c.drawString(25 * mm, ph - 18.5 * mm, "MANTA")
     c.setFont("Helvetica-Oblique", 8.3)
     c.setFillColor(colors.HexColor("#a9d3d3"))
-    sub1 = "The ocean makes the oxygen we breathe, and it is full of our plastic."
-    sub2 = "MANTA is a wave of it, made by an algorithm so you print only what you need."
+    sub1 = "The ocean makes the oxygen we breathe, and we fill it with plastic."
+    sub2 = "MANTA is a wave from that ocean, made by an algorithm so you print only what you need."
     c.drawString(25 * mm, ph - 26 * mm, sub1)
     c.drawString(25 * mm, ph - 31.5 * mm, sub2)
     c.restoreState()
@@ -163,7 +163,7 @@ def draw_footer(c, doc):
     c.line(20 * mm, 13.5 * mm, pw - 20 * mm, 13.5 * mm)
     c.setFont("Helvetica", 7.3)
     c.setFillColor(SUB)
-    c.drawString(20 * mm, 9.5 * mm, "MANTA")
+    pass   # (no footer label: every word counts towards the 500)
     c.setFont("Helvetica-Bold", 7.6)
     c.setFillColor(TEAL_DK)
     c.drawRightString(pw - 20 * mm, 9.5 * mm, "Anonymised source: anonymous.4open.science/r/manta-chair-23D4")
