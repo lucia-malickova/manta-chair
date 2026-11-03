@@ -45,9 +45,9 @@ _ban.save(BANNER, quality=88)
 src = open("MANTA_Description_DRAFT.md", encoding="utf-8").read()
 styles = getSampleStyleSheet()
 H1 = ParagraphStyle("H1", parent=styles["Title"], fontSize=20, spaceAfter=3, spaceBefore=0)
-H2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=11.2, spaceBefore=8, spaceAfter=3.0,
+H2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=12, spaceBefore=10, spaceAfter=3.5,
                     textColor=TEAL_DK)
-BODY = ParagraphStyle("BODY", parent=styles["BodyText"], fontSize=9.15, leading=12.0,
+BODY = ParagraphStyle("BODY", parent=styles["BodyText"], fontSize=9.9, leading=13.6,
                       alignment=TA_JUSTIFY, spaceAfter=3.0, textColor=INK)
 BUL = ParagraphStyle("BUL", parent=BODY, leftIndent=16, firstLineIndent=-10, spaceAfter=1.6)
 LIST = ParagraphStyle("LIST", parent=BODY, leftIndent=0, spaceAfter=2.4)
@@ -61,8 +61,15 @@ def md_inline(t):
     t = re.sub(r"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)", r"<i>\1</i>", t)
     return t
 
+_HDEPTH = ["#1f9aa3", "#13808e", "#0d6a7c", "#0b5468", "#0a3f58"]
+_hcount = [0]
+
+
 def section_header(title):
-    return Paragraph(f'<font color="#0a828a">■</font>&nbsp;&nbsp;{title.upper()}', H2)
+    """no bullet mark: the heading itself sinks one shade deeper each time"""
+    col = _HDEPTH[min(_hcount[0], len(_HDEPTH) - 1)]
+    _hcount[0] += 1
+    return Paragraph(f'<font color="{col}">{title.upper()}</font>', H2)
 
 def stat_strip():
     stats = [("~250 kg", "safe static load"), ("26×", "glued full-section joint"),
@@ -135,38 +142,120 @@ flush_para(); flush_bullets()
 if pending_stats:
     story.append(Spacer(1, 3)); story.append(stat_strip())
 
+import math
+import random
+
+DEEP_RGB = (10 / 255, 34 / 255, 58 / 255)
+FOOT_H = 44 * mm
+
+
+def _vgrad(c, x, y0, w, h, top, bot, n=120):
+    """vertical gradient from colour `top` (at y0 + h) to `bot` (at y0)"""
+    for i in range(n):
+        u = i / (n - 1)
+        col = [t + (b - t) * u for t, b in zip(top, bot)]
+        c.setFillColorRGB(*col)
+        c.rect(x, y0 + h - (i + 1) * h / n, w, h / n + 0.4, fill=1, stroke=0)
+
+
+def _manta(c, cx, cy, w, ang, rgb):
+    pts = []
+    for k in range(21):
+        t = k / 20.0
+        pts.append((0.08 * w + 0.42 * w * t, 0.24 * w - 0.24 * w * t ** 0.6))
+    for k in range(21):
+        t = k / 20.0
+        pts.append((0.5 * w - 0.38 * w * t, -0.02 * w - 0.18 * w * t ** 1.4))
+    body = [(0.12 * w, -0.2 * w), (0.06 * w, -0.24 * w), (-0.06 * w, -0.24 * w), (-0.12 * w, -0.2 * w)]
+    left = [(-x, y) for x, y in reversed(pts)]
+    head = [(-0.06 * w, 0.3 * w), (-0.03 * w, 0.24 * w), (0.03 * w, 0.24 * w), (0.06 * w, 0.3 * w)]
+    poly = pts + body + left + head
+    ca, sa = math.cos(ang), math.sin(ang)
+    P = [(cx + x * ca - y * sa, cy + x * sa + y * ca) for x, y in poly]
+    c.setFillColorRGB(*rgb)
+    p = c.beginPath()
+    p.moveTo(*P[0])
+    for q in P[1:]:
+        p.lineTo(*q)
+    p.close()
+    c.drawPath(p, fill=1, stroke=0)
+    c.setStrokeColorRGB(*rgb); c.setLineWidth(max(0.6, w / 120))
+    c.line(cx + 0.24 * w * sa, cy - 0.24 * w * ca, cx + 0.62 * w * sa, cy - 0.62 * w * ca)
+
+
 def draw_band(c, doc):
     pw, ph = A4
     c.saveState()
-    c.setFillColor(NAVY)
-    c.rect(0, ph - BAND_H, pw, BAND_H, fill=1, stroke=0)
-    icon = BAND_H - 10 * mm
-    c.drawImage(BANNER, pw - 16 * mm - icon, ph - BAND_H + 5 * mm, icon, icon,
-               preserveAspectRatio=True, mask=None)
-    c.setFillColor(TEAL)
-    c.rect(20 * mm, ph - 19 * mm, 2.6 * mm, 9 * mm, fill=1, stroke=0)
+    # the water below the waterline, deepening down the page
+    _vgrad(c, 0, FOOT_H, pw, ph - BAND_H - FOOT_H, (0.93, 0.98, 0.98), (0.80, 0.92, 0.93))
+    # air and the sunlit surface, with oxygen rising
+    _vgrad(c, 0, ph - BAND_H, pw, BAND_H, (0.97, 0.995, 0.995), (0.80, 0.93, 0.94), 60)
+    rnd = random.Random(4)
+    c.setStrokeColorRGB(0.45, 0.72, 0.76)
+    for _ in range(26):
+        x = rnd.uniform(146 * mm, 166 * mm) if rnd.random() < 0.7 else rnd.uniform(4 * mm, 16 * mm)
+        y = rnd.uniform(ph - BAND_H + 4 * mm, ph - 3 * mm)
+        r = rnd.uniform(0.5, 2.2) * mm * (0.5 + 0.5 * (ph - y) / BAND_H)
+        c.setLineWidth(0.5)
+        c.circle(x, y, r, stroke=1, fill=0)
+    c.setFont("Helvetica-Bold", 8); c.setFillColorRGB(0.30, 0.58, 0.63)
+    c.drawString(160 * mm, ph - 9 * mm, "O")
+    c.setFont("Helvetica-Bold", 5.5); c.drawString(163.2 * mm, ph - 10.2 * mm, "2")
+    # the waterline, with our plastic floating on it
+    wy = ph - BAND_H
+    c.setStrokeColorRGB(0.06, 0.40, 0.48); c.setLineWidth(1.1)
+    p = c.beginPath(); p.moveTo(0, wy)
+    for k in range(0, 211, 3):
+        p.lineTo(k * mm, wy + 0.9 * mm * math.sin(k / 9.0))
+    c.drawPath(p, stroke=1, fill=0)
+    for x, kind, rgb in [(28, "b", (0.55, 0.62, 0.68)), (44, "c", (0.80, 0.52, 0.40)), (61, "g", (0.62, 0.68, 0.72)),
+                         (96, "b", (0.80, 0.52, 0.40)), (118, "c", (0.55, 0.62, 0.68)), (182, "g", (0.55, 0.62, 0.68)),
+                         (196, "c", (0.62, 0.68, 0.72))]:
+        X, Y = x * mm, wy + 0.9 * mm * math.sin(x / 9.0)
+        c.setFillColorRGB(*rgb)
+        if kind == "b":
+            c.roundRect(X - 5 * mm, Y - 1.1 * mm, 8 * mm, 2.4 * mm, 1 * mm, fill=1, stroke=0)
+            c.rect(X + 3 * mm, Y - 0.55 * mm, 1.6 * mm, 1.3 * mm, fill=1, stroke=0)
+        elif kind == "c":
+            c.circle(X, Y + 0.2 * mm, 1.1 * mm, fill=1, stroke=0)
+        else:
+            q = c.beginPath(); q.moveTo(X - 4 * mm, Y)
+            for dx, dy in [(-2.4, 2.2), (-0.4, 0.9), (1.2, 2.6), (3.2, 0.6), (4.2, -0.6), (0.5, -1.2)]:
+                q.lineTo(X + dx * mm, Y + dy * mm)
+            q.close(); c.drawPath(q, fill=1, stroke=0)
+    # a porthole onto the chair
+    R = (BAND_H - 12 * mm) / 2
+    pcx, pcy = pw - 16 * mm - R, ph - BAND_H / 2 + 1 * mm
+    c.saveState()
+    cp = c.beginPath(); cp.circle(pcx, pcy, R)
+    c.clipPath(cp, stroke=0, fill=0)
+    c.drawImage(BANNER, pcx - R * 1.08, pcy - R * 1.08, 2.16 * R, 2.16 * R,
+                preserveAspectRatio=True, mask=None)
+    c.restoreState()
+    c.setStrokeColorRGB(0.06, 0.40, 0.48); c.setLineWidth(1.6)
+    c.circle(pcx, pcy, R, stroke=1, fill=0)
     c.setFont("Helvetica-Bold", 27)
-    c.setFillColor(colors.white)
-    c.drawString(25 * mm, ph - 18.5 * mm, "MANTA")
+    c.setFillColorRGB(*DEEP_RGB)
+    c.drawString(20 * mm, ph - 18.5 * mm, "MANTA")
     c.setFont("Helvetica-Oblique", 8.3)
-    c.setFillColor(colors.HexColor("#a9d3d3"))
+    c.setFillColor(colors.HexColor("#0d6a7c"))
     sub1 = "The ocean makes the oxygen we breathe, and we fill it with plastic."
     sub2 = "MANTA is a wave from that ocean, made by an algorithm so you print only what you need."
-    c.drawString(25 * mm, ph - 26 * mm, sub1)
-    c.drawString(25 * mm, ph - 31.5 * mm, sub2)
+    c.drawString(20 * mm, ph - 26 * mm, sub1)
+    c.drawString(20 * mm, ph - 31.5 * mm, sub2)
     c.restoreState()
 
 def draw_footer(c, doc):
     pw, ph = A4
     c.saveState()
-    c.setStrokeColor(TEAL); c.setLineWidth(1)
-    c.line(20 * mm, 13.5 * mm, pw - 20 * mm, 13.5 * mm)
-    c.setFont("Helvetica", 7.3)
-    c.setFillColor(SUB)
-    pass   # (no footer label: every word counts towards the 500)
+    _vgrad(c, 0, 0, pw, FOOT_H, (0.80, 0.92, 0.93), DEEP_RGB, 60)
+    _manta(c, 44 * mm, 20 * mm, 34 * mm, 0.25, (0.20, 0.42, 0.52))
+    _manta(c, 95 * mm, 12 * mm, 18 * mm, -0.2, (0.15, 0.34, 0.45))
+    _manta(c, 138 * mm, 26 * mm, 13 * mm, 0.4, (0.26, 0.50, 0.60))
+    _manta(c, 172 * mm, 18 * mm, 9 * mm, -0.35, (0.22, 0.44, 0.55))
     c.setFont("Helvetica-Bold", 7.6)
-    c.setFillColor(TEAL_DK)
-    c.drawRightString(pw - 20 * mm, 9.5 * mm, "Anonymised source: anonymous.4open.science/r/manta-chair-23D4")
+    c.setFillColorRGB(0.82, 0.93, 0.94)
+    c.drawRightString(pw - 14 * mm, 6 * mm, "Anonymised source: anonymous.4open.science/r/manta-chair-23D4")
     c.restoreState()
 
 def on_first_page(c, doc):
@@ -174,7 +263,7 @@ def on_first_page(c, doc):
 
 doc = SimpleDocTemplate("TEAMID_Description.pdf", pagesize=A4,
                         leftMargin=20 * mm, rightMargin=20 * mm,
-                        topMargin=TOPMARGIN, bottomMargin=15 * mm,
+                        topMargin=TOPMARGIN, bottomMargin=FOOT_H + 3 * mm,
                         title="Chair Description", author="")
 doc.build(story, onFirstPage=on_first_page, onLaterPages=draw_footer)
 
